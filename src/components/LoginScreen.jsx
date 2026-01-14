@@ -11,28 +11,32 @@ const LoginScreen = () => {
             name: '海汽大宗 (买方)',
             desc: '大型大宗商品交易商，负责采购与库存管理',
             icon: <UserCircle className="text-trade-blue" size={40} />,
-            color: 'border-trade-blue/30'
+            color: 'border-trade-blue/30',
+            rating: 'AAA'
         },
         {
             id: 'SELLER',
             name: '沙钢贸易 (卖方)',
             desc: '钢厂下属贸易机构，发布一手现货货源',
             icon: <UserCircle className="text-trade-red" size={40} />,
-            color: 'border-trade-red/30'
+            color: 'border-trade-red/30',
+            rating: 'AAA'
         },
         {
             id: 'MM',
             name: '宏源做市 (做市商)',
             desc: '专业流动性供应商，维持市场深度与活跃度',
             icon: <Activity className="text-trade-yellow" size={40} />,
-            color: 'border-trade-yellow/30'
+            color: 'border-trade-yellow/30',
+            rating: 'AA+'
         },
         {
             id: 'ADMIN',
             name: 'HNI 监管端 (管理员)',
             desc: '负责市场监管、合规审核及人工撮合干预',
             icon: <ShieldCheck className="text-trade-green" size={40} />,
-            color: 'border-trade-green/30'
+            color: 'border-trade-green/30',
+            rating: 'EXEMPT'
         }
     ];
 
@@ -71,9 +75,14 @@ const LoginScreen = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-white group-hover:text-trade-blue transition-colors">
-                                    {card.name}
-                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-bold text-white group-hover:text-trade-blue transition-colors">
+                                        {card.name}
+                                    </h3>
+                                    <span className="bg-trade-blue/10 text-trade-blue text-[9px] font-black px-1.5 py-0.5 rounded border border-trade-blue/20">
+                                        {card.rating}
+                                    </span>
+                                </div>
                                 <p className="text-sm text-gray-500 leading-relaxed">
                                     {card.desc}
                                 </p>

@@ -22,7 +22,13 @@ const Navbar = () => {
                     <div className="w-1.5 h-1.5 bg-trade-blue rounded-full absolute top-2 right-2"></div>
                     <UserCircle size={20} className="text-trade-blue" />
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-none mb-1">当前机构身份</span>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter cursor-default">当前机构身份</span>
+                            <span className="text-[9px] bg-trade-blue/20 text-trade-blue px-1 rounded font-black border border-trade-blue/30 leading-tight">
+                                {currentUserRole === 'BUYER' || currentUserRole === 'SELLER' ? 'AAA' :
+                                    currentUserRole === 'MM' ? 'AA+' : 'EXEMPT'}
+                            </span>
+                        </div>
                         <span className="text-sm font-bold text-gray-200">{USER_ROLE_NAMES[currentUserRole]}</span>
                     </div>
                 </div>
