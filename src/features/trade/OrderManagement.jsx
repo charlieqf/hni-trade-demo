@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import useTradeStore, { USER_ROLE_NAMES } from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
-import { XCircle, ExternalLink, History } from 'lucide-react';
+import { XCircle, ExternalLink, History, X, ShieldCheck as Shield, FileText } from 'lucide-react';
 
 const OrderManagement = () => {
     const { orders, cancelOrder, trades, currentUserRole } = useTradeStore();
+    const [selectedTradeForReceipt, setSelectedTradeForReceipt] = React.useState(null);
 
     const myOrders = useMemo(() =>
         orders.filter(o => o.role === currentUserRole),
@@ -137,7 +138,15 @@ const OrderManagement = () => {
                                         </span>
                                     </td>
                                     <td className="trade-table-cell">
-                                        <span className="text-trade-blue text-[11px] font-bold">● 已清算</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-trade-blue text-[11px] font-bold">● 已清算</span>
+                                            <button
+                                                onClick={() => setSelectedTradeForReceipt(trade)}
+                                                className="text-trade-blue hover:text-trade-blue/80 transition-colors"
+                                            >
+                                                <ExternalLink size={12} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -150,6 +159,87 @@ const OrderManagement = () => {
                     </table>
                 </div>
             </div>
+            {/* Warehouse Receipt Modal */}
+            {selectedTradeForReceipt && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white text-gray-900 w-full max-w-2xl rounded-sm shadow-2xl overflow-hidden flex flex-col relative border-[12px] border-double border-gray-200">
+                        {/* Close button */}
+                        <button
+                            onClick={() => setSelectedTradeForReceipt(null)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <div className="p-12 flex flex-col gap-8">
+                            {/* Header */}
+                            <div className="text-center space-y-2 border-b-2 border-gray-900 pb-6">
+                                <h1 className="text-3xl font-serif font-black tracking-widest text-gray-900 underline underline-offset-8 decoration-1">电子仓单证明书</h1>
+                                <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">Electronic Warehouse Receipt Certificate</p>
+                            </div>
+
+                            {/* Verification Code */}
+                            <div className="flex justify-between items-start text-[10px] font-mono text-gray-400">
+                                <div className="flex flex-col">
+                                    <span>系统编号: EWR-{selectedTradeForReceipt.id.toUpperCase()}</span>
+                                    <span>签署日期: {new Date(selectedTradeForReceipt.timestamp).toLocaleDateString('zh-CN')}</span>
+                                </div>
+                                <div className="p-2 border border-gray-100 rounded">
+                                    HASH: {selectedTradeForReceipt.id}55x...99
+                                </div>
+                            </div>
+
+                            {/* Content Table */}
+                            <div className="border border-gray-900">
+                                <div className="grid grid-cols-4 border-b border-gray-300">
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">持有机构</div>
+                                    <div className="p-3 text-xs col-span-3">{USER_ROLE_NAMES[currentUserRole]}</div>
+                                </div>
+                                <div className="grid grid-cols-4 border-b border-gray-300">
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">实物品种</div>
+                                    <div className="p-3 text-xs border-r border-gray-300">{getVarietyName(selectedTradeForReceipt.typeId)}</div>
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">货物净重</div>
+                                    <div className="p-3 text-xs font-mono">{selectedTradeForReceipt.quantity} 吨</div>
+                                </div>
+                                <div className="grid grid-cols-4 border-b border-gray-300">
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">存管仓库</div>
+                                    <div className="p-3 text-xs col-span-3">海南洋浦保税港区 A12 监管仓</div>
+                                </div>
+                                <div className="grid grid-cols-4">
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">清算状态</div>
+                                    <div className="p-3 text-xs text-green-600 font-bold border-r border-gray-300 flex items-center gap-1">
+                                        <Shield size={12} />
+                                        已结算
+                                    </div>
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">凭证类型</div>
+                                    <div className="p-3 text-xs">转让背书有效</div>
+                                </div>
+                            </div>
+
+                            {/* Footer / Stamp area */}
+                            <div className="mt-12 flex justify-between items-end">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <FileText size={14} />
+                                        <span>本凭证由海南国际清算所分布式账本系统自动生成</span>
+                                    </div>
+                                    <div className="text-[9px] text-gray-400 max-w-sm">
+                                        注：本凭证受《大宗商品电子交易管理办法》保护，具有唯一法律效力。任何篡改或伪造将触犯相关法规。
+                                    </div>
+                                </div>
+
+                                <div className="relative">
+                                    {/* Mock Stamp */}
+                                    <div className="w-24 h-24 rounded-full border-4 border-red-600/30 flex items-center justify-center text-red-600/30 font-black text-center text-xs rotate-[-15deg] pointer-events-none">
+                                        海南国际清算所<br />清算专用章
+                                    </div>
+                                    <div className="absolute top-0 left-0 w-24 h-24 rounded-full bg-red-600/5 rotate-[-15deg]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
