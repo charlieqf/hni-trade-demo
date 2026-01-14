@@ -23,7 +23,7 @@ const Navbar = () => {
                     <UserCircle size={20} className="text-trade-blue" />
                     <div className="flex flex-col">
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-none mb-1">当前机构身份</span>
-                        <span className="text-sm font-bold text-gray-200">{USER_ROLES[currentUserRole]}</span>
+                        <span className="text-sm font-bold text-gray-200">{USER_ROLE_NAMES[currentUserRole]}</span>
                     </div>
                 </div>
 

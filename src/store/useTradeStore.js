@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const USER_ROLES = {
+    BUYER: 'BUYER',
+    SELLER: 'SELLER',
+    MM: 'MM',
+    ADMIN: 'ADMIN',
+};
+
+export const USER_ROLE_NAMES = {
     BUYER: '买方 (海汽大宗)',
     SELLER: '卖方 (沙钢贸易)',
     MM: '做市商 (宏源做市)',
@@ -73,16 +80,16 @@ const useTradeStore = create(
                 }
             },
 
-            executeTrade: (buyOrder, sellOrder, isManual = false) => {
-                const tradePrice = isManual ? (buyOrder.price + sellOrder.price) / 2 : sellOrder.price;
-                const tradeQty = Math.min(buyOrder.quantity, sellOrder.quantity);
+            executeTrade: (buyOrder, sellOrder, isManual = false, manualPrice = null, manualQty = null) => {
+                const tradePrice = manualPrice || (isManual ? (buyOrder.price + sellOrder.price) / 2 : sellOrder.price);
+                const tradeQty = manualQty || Math.min(buyOrder.quantity, sellOrder.quantity);
 
                 const newTrade = {
                     id: 't' + Math.random().toString(36).substr(2, 9),
                     buyOrderId: buyOrder.id,
                     sellOrderId: sellOrder.id,
-                    price: tradePrice,
-                    quantity: tradeQty,
+                    price: Number(tradePrice),
+                    quantity: Number(tradeQty),
                     categoryId: buyOrder.categoryId,
                     typeId: buyOrder.typeId,
                     timestamp: Date.now(),
@@ -94,51 +101,13 @@ const useTradeStore = create(
                     orders: state.orders.map(o => {
                         if (o.id === buyOrder.id || o.id === sellOrder.id) {
                             const remainingQty = o.quantity - tradeQty;
-                            return remainingQty > 0 ? { ...o, quantity: remainingQty } : { ...o, status: 'FILLED', quantity: 0 };
+                            return remainingQty > 0
+                                ? { ...o, quantity: remainingQty }
+                                : { ...o, status: 'FILLED', quantity: 0 };
                         }
                         return o;
                     })
                 }));
-            },
-
-            manualExecuteTrade: (buyOrderId, sellOrderId, price, quantity) => {
-                const { orders, trades } = get();
-                const buyOrder = orders.find(o => o.id === buyOrderId);
-                const sellOrder = orders.find(o => o.id === sellOrderId);
-
-                if (!buyOrder || !sellOrder) return;
-
-                const tradePrice = price || sellOrder.price;
-                const tradeQuantity = quantity || Math.min(buyOrder.quantity, sellOrder.quantity);
-
-                const newTrade = {
-                    id: `t-${Date.now()}`,
-                    buyOrderId,
-                    sellOrderId,
-                    price: tradePrice,
-                    quantity: tradeQuantity,
-                    categoryId: buyOrder.categoryId,
-                    typeId: buyOrder.typeId,
-                    timestamp: Date.now(),
-                    matchedBy: 'MANUAL',
-                };
-
-                const updatedOrders = orders.map(o => {
-                    if (o.id === buyOrderId || o.id === sellOrderId) {
-                        const remaining = o.quantity - tradeQuantity;
-                        return {
-                            ...o,
-                            quantity: remaining,
-                            status: remaining <= 0 ? 'FILLED' : 'OPEN'
-                        };
-                    }
-                    return o;
-                });
-
-                set({
-                    orders: updatedOrders,
-                    trades: [newTrade, ...trades]
-                });
             },
 
             logout: () => set({ currentUserRole: null }),

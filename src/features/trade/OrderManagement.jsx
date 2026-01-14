@@ -52,7 +52,16 @@ const OrderManagement = () => {
                         <tbody>
                             {myOrders.map(order => (
                                 <tr key={order.id} className="trade-table-row">
-                                    <td className="trade-table-cell font-medium">{getVarietyName(order.typeId)}</td>
+                                    <td className="trade-table-cell">
+                                        <div className="font-medium text-gray-200">{getVarietyName(order.typeId)}</div>
+                                        <div className="flex gap-1.5 mt-1 flex-wrap">
+                                            {Object.entries(order.attributes).map(([k, v]) => v && (
+                                                <span key={k} className="text-[9px] bg-trade-border/30 px-1 py-0.5 rounded text-gray-500 font-bold uppercase tracking-tighter">
+                                                    {v}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </td>
                                     <td className="trade-table-cell">
                                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${order.type === 'BID' ? 'bg-trade-green/20 text-trade-green' : 'bg-trade-red/20 text-trade-red'}`}>
                                             {order.type === 'BID' ? '买入' : '卖出'}

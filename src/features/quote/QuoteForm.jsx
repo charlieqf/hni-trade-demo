@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import useTradeStore, { USER_ROLES } from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
-import { Send, Plus, Minus, Info } from 'lucide-react';
+import { Send, Plus, Minus, Info, ShieldCheck } from 'lucide-react';
 
 const QuoteForm = () => {
     const { currentUserRole, selectedVariety, addOrder } = useTradeStore();
@@ -9,6 +9,8 @@ const QuoteForm = () => {
     const [price, setPrice] = useState(3800);
     const [quantity, setQuantity] = useState(10);
     const [attributes, setAttributes] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const varietyInfo = useMemo(() => {
         const cat = TRADING_VARIETIES.find(c => c.id === selectedVariety.categoryId);
@@ -19,7 +21,9 @@ const QuoteForm = () => {
     useEffect(() => {
         if (varietyInfo) {
             const initialAttrs = {};
-            varietyInfo.attributes.forEach(attr => initialAttrs[attr] = '');
+            varietyInfo.attributes.forEach(attr => {
+                initialAttrs[attr.name] = attr.options ? attr.options[0] : '';
+            });
             setAttributes(initialAttrs);
         }
     }, [varietyInfo]);
@@ -32,29 +36,42 @@ const QuoteForm = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        addOrder({
-            role: currentUserRole,
-            type,
-            price: Number(price),
-            quantity: Number(quantity),
-            categoryId: selectedVariety.categoryId,
-            typeId: selectedVariety.typeId,
-            attributes
-        });
-        // Visual feedback/reset can be added here
+        setIsSubmitting(true);
+
+        // Simulate a tiny network delay for realism
+        setTimeout(() => {
+            addOrder({
+                role: currentUserRole,
+                type,
+                price: Number(price),
+                quantity: Number(quantity),
+                categoryId: selectedVariety.categoryId,
+                typeId: selectedVariety.typeId,
+                attributes
+            });
+            setIsSubmitting(false);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        }, 300);
     };
 
     const handleMMDualQuote = () => {
-        // MM specific: Add both Bid and Ask with a spread
+        setIsSubmitting(true);
         const spread = 5;
-        addOrder({
-            role: 'MM', type: 'BID', price: Number(price) - spread, quantity: Number(quantity),
-            categoryId: selectedVariety.categoryId, typeId: selectedVariety.typeId, attributes
-        });
-        addOrder({
-            role: 'MM', type: 'ASK', price: Number(price) + spread, quantity: Number(quantity),
-            categoryId: selectedVariety.categoryId, typeId: selectedVariety.typeId, attributes
-        });
+
+        setTimeout(() => {
+            addOrder({
+                role: 'MM', type: 'BID', price: Number(price) - spread, quantity: Number(quantity),
+                categoryId: selectedVariety.categoryId, typeId: selectedVariety.typeId, attributes
+            });
+            addOrder({
+                role: 'MM', type: 'ASK', price: Number(price) + spread, quantity: Number(quantity),
+                categoryId: selectedVariety.categoryId, typeId: selectedVariety.typeId, attributes
+            });
+            setIsSubmitting(false);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        }, 300);
     };
 
     return (
@@ -86,16 +103,29 @@ const QuoteForm = () => {
                 {/* Variety Specific Attributes */}
                 <div className="grid grid-cols-2 gap-4 border-b border-trade-border/30 pb-5">
                     {varietyInfo?.attributes.map(attr => (
-                        <div key={attr} className="flex flex-col gap-1.5">
-                            <label className="text-[11px] text-gray-500 font-bold uppercase">{attr}</label>
-                            <input
-                                type="text"
-                                value={attributes[attr] || ''}
-                                onChange={(e) => setAttributes({ ...attributes, [attr]: e.target.value })}
-                                placeholder={`请输入${attr}`}
-                                className="bg-trade-bg border border-trade-border rounded px-3 py-2 text-sm focus:border-trade-blue outline-none transition-colors"
-                                required
-                            />
+                        <div key={attr.name} className="flex flex-col gap-1.5">
+                            <label className="text-[11px] text-gray-500 font-bold uppercase">{attr.name}</label>
+                            {attr.options ? (
+                                <select
+                                    value={attributes[attr.name] || ''}
+                                    onChange={(e) => setAttributes({ ...attributes, [attr.name]: e.target.value })}
+                                    className="bg-trade-bg border border-trade-border rounded px-3 py-2 text-sm focus:border-trade-blue outline-none transition-colors"
+                                    required
+                                >
+                                    {attr.options.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={attributes[attr.name] || ''}
+                                    onChange={(e) => setAttributes({ ...attributes, [attr.name]: e.target.value })}
+                                    placeholder={`请输入${attr.name}`}
+                                    className="bg-trade-bg border border-trade-border rounded px-3 py-2 text-sm focus:border-trade-blue outline-none transition-colors"
+                                    required
+                                />
+                            )}
                         </div>
                     ))}
                 </div>
@@ -135,21 +165,43 @@ const QuoteForm = () => {
                     <button
                         type="button"
                         onClick={handleMMDualQuote}
-                        className="w-full bg-trade-blue hover:bg-trade-blue/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98]"
+                        disabled={isSubmitting}
+                        className={`w-full bg-trade-blue hover:bg-trade-blue/90 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                     >
-                        <Send size={18} />
-                        发布双边快速报价 (±5元价差)
+                        {showSuccess ? (
+                            <div className="flex items-center gap-2 animate-in zoom-in-95">
+                                <ShieldCheck size={18} />
+                                双边报价发布成功
+                            </div>
+                        ) : (
+                            <>
+                                <Send size={18} />
+                                发布双边快速报价 (±5元价差)
+                            </>
+                        )}
                     </button>
                 ) : (
                     <button
                         type="submit"
-                        className={`w-full font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${type === 'BID'
-                            ? 'bg-trade-green hover:bg-trade-green/90 text-white'
-                            : 'bg-trade-red hover:bg-trade-red/90 text-white'
+                        disabled={isSubmitting}
+                        className={`w-full font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                            } ${type === 'BID'
+                                ? 'bg-trade-green hover:bg-trade-green/90 text-white'
+                                : 'bg-trade-red hover:bg-trade-red/90 text-white'
                             }`}
                     >
-                        <Send size={18} />
-                        确认发布 {type === 'BID' ? '买入' : '卖出'} 报价
+                        {showSuccess ? (
+                            <div className="flex items-center gap-2 animate-in zoom-in-95">
+                                <ShieldCheck size={18} />
+                                报价发布成功
+                            </div>
+                        ) : (
+                            <>
+                                <Send size={18} />
+                                确认发布 {type === 'BID' ? '买入' : '卖出'} 报价
+                            </>
+                        )}
                     </button>
                 )}
             </form>
