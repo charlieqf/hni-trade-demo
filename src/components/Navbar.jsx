@@ -3,14 +3,7 @@ import useTradeStore, { USER_ROLES } from '../store/useTradeStore';
 import { UserCircle, ShieldCheck, Activity } from 'lucide-react';
 
 const Navbar = () => {
-    const { currentUserRole, setCurrentRole } = useTradeStore();
-
-    const roles = [
-        { id: 'BUYER', name: USER_ROLES.BUYER, icon: <UserCircle size={18} /> },
-        { id: 'SELLER', name: USER_ROLES.SELLER, icon: <UserCircle size={18} /> },
-        { id: 'MM', name: USER_ROLES.MM, icon: <Activity size={18} /> },
-        { id: 'ADMIN', name: USER_ROLES.ADMIN, icon: <ShieldCheck size={18} /> },
-    ];
+    const { currentUserRole, logout } = useTradeStore();
 
     return (
         <nav className="h-16 bg-trade-card border-b border-trade-border flex items-center justify-between px-6 sticky top-0 z-50">
@@ -24,20 +17,23 @@ const Navbar = () => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 bg-trade-bg p-1 rounded-lg border border-trade-border">
-                {roles.map((role) => (
-                    <button
-                        key={role.id}
-                        onClick={() => setCurrentRole(role.id)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentUserRole === role.id
-                            ? 'bg-trade-blue text-white shadow-lg'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                            }`}
-                    >
-                        {role.icon}
-                        {role.name}
-                    </button>
-                ))}
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 bg-trade-bg px-4 py-2 rounded-lg border border-trade-border group relative overflow-hidden">
+                    <div className="w-1.5 h-1.5 bg-trade-blue rounded-full absolute top-2 right-2"></div>
+                    <UserCircle size={20} className="text-trade-blue" />
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter leading-none mb-1">当前机构身份</span>
+                        <span className="text-sm font-bold text-gray-200">{USER_ROLES[currentUserRole]}</span>
+                    </div>
+                </div>
+
+                <button
+                    onClick={logout}
+                    className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-trade-red border border-trade-border hover:border-trade-red/50 rounded-lg transition-all flex items-center gap-2 bg-white/[0.02]"
+                >
+                    <ShieldCheck size={14} />
+                    退出登录
+                </button>
             </div>
 
             <div className="flex items-center gap-4 text-sm text-gray-400">

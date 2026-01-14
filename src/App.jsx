@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import LoginScreen from './components/LoginScreen';
 import MarketDepth from './features/market/MarketDepth';
 import QuoteForm from './features/quote/QuoteForm';
 import OrderManagement from './features/trade/OrderManagement';
@@ -23,6 +24,7 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-trade-bg text-gray-200 overflow-hidden">
+      {!currentUserRole && <LoginScreen />}
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
