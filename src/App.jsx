@@ -36,8 +36,8 @@ function App() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all relative ${activeTab === tab.id
-                    ? 'text-trade-blue'
-                    : 'text-gray-500 hover:text-gray-300'
+                  ? 'text-trade-blue'
+                  : 'text-gray-500 hover:text-gray-300'
                   }`}
               >
                 {tab.icon}
@@ -80,7 +80,7 @@ function App() {
                   <Settings size={48} className="text-gray-600 mx-auto mb-4" />
                   <h3 className="text-lg font-bold">系统配置后台</h3>
                   <p className="text-sm text-gray-500 max-w-xs mx-auto mt-2">
-                    此处可动态配置交易品种、手续费率及清算规则。 Demo版本中属性模板已预设。
+                    此处可动态配置交易品种、手续费率及清算规则。当前版本中属性模板已预设。
                   </p>
                 </div>
               </div>
@@ -97,7 +97,7 @@ function App() {
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-blue rounded-full"></span> Vercel Cloud: 已连接</span>
         </div>
         <div className="tracking-widest uppercase">
-          海南国际清算所 &copy; 2026 技术演示专用
+          海南国际清算所 &copy; 2026 技术演示
         </div>
       </footer>
     </div>

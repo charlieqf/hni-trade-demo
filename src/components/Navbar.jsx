@@ -17,10 +17,10 @@ const Navbar = () => {
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-trade-blue rounded flex items-center justify-center font-bold text-white">H</div>
                 <div className="text-xl font-bold tracking-tight bg-gradient-to-r from-trade-blue to-trade-green bg-clip-text text-transparent">
-                    海南国际清算所 Demo
+                    海南国际清算所
                 </div>
                 <div className="ml-4 px-2 py-0.5 bg-trade-border/50 rounded text-[10px] text-gray-400 font-medium uppercase tracking-widest">
-                    Trading Demo v1.0
+                    Trading Platform v1.0
                 </div>
             </div>
 
@@ -30,8 +30,8 @@ const Navbar = () => {
                         key={role.id}
                         onClick={() => setCurrentRole(role.id)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${currentUserRole === role.id
-                                ? 'bg-trade-blue text-white shadow-lg'
-                                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            ? 'bg-trade-blue text-white shadow-lg'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
                         {role.icon}
