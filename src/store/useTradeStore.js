@@ -27,6 +27,9 @@ const useTradeStore = create(
                 { id: '2', role: 'MM', type: 'ASK', price: 3845, quantity: 500, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '永钢', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 50000, status: 'OPEN' },
                 { id: '3', role: 'BUYER', type: 'BID', price: 3830, quantity: 200, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '任意', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 80000, status: 'OPEN' },
                 { id: '4', role: 'MM', type: 'BID', price: 3835, quantity: 400, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '永钢', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 40000, status: 'OPEN' },
+                // Mock orders for initial trade visibility
+                { id: 'mock-buy-1', role: 'BUYER', type: 'BID', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '沙钢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
+                { id: 'mock-sell-1', role: 'SELLER', type: 'ASK', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '沙钢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
             ],
 
             // Trades: { id, buyOrderId, sellOrderId, price, quantity, timestamp, matchedBy: 'AUTO' | 'MANUAL' }
@@ -113,7 +116,7 @@ const useTradeStore = create(
             logout: () => set({ currentUserRole: null }),
         }),
         {
-            name: 'hni-trade-storage',
+            name: 'hni-trade-storage-v2',
             storage: createJSONStorage(() => localStorage),
         }
     )
