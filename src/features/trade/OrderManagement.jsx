@@ -106,10 +106,6 @@ const OrderManagement = () => {
                         <History size={16} className="text-trade-blue" />
                         结算历史
                     </h3>
-                    <button className="text-[10px] text-trade-blue hover:underline flex items-center gap-1 font-bold italic">
-                        <ExternalLink size={10} />
-                        查看电子仓单
-                    </button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -138,13 +134,14 @@ const OrderManagement = () => {
                                         </span>
                                     </td>
                                     <td className="trade-table-cell">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-trade-blue text-[11px] font-bold">● 已清算</span>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-trade-blue text-[11px] font-bold whitespace-nowrap">● 已清算</span>
                                             <button
                                                 onClick={() => setSelectedTradeForReceipt(trade)}
-                                                className="text-trade-blue hover:text-trade-blue/80 transition-colors"
+                                                className="text-[10px] text-trade-blue hover:bg-trade-blue/10 px-2 py-1 rounded border border-trade-blue/30 transition-all flex items-center gap-1 font-bold"
                                             >
-                                                <ExternalLink size={12} />
+                                                <ExternalLink size={10} />
+                                                查看仓单
                                             </button>
                                         </div>
                                     </td>
@@ -159,6 +156,7 @@ const OrderManagement = () => {
                     </table>
                 </div>
             </div>
+
             {/* Warehouse Receipt Modal */}
             {selectedTradeForReceipt && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
