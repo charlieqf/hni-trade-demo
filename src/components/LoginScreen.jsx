@@ -1,5 +1,5 @@
 import React from 'react';
-import useTradeStore, { USER_ROLES } from '../store/useTradeStore';
+import useTradeStore from '../store/useTradeStore';
 import { UserCircle, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
 
 const LoginScreen = () => {

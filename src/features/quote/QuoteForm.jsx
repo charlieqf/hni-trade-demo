@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import useTradeStore, { USER_ROLES } from '../../store/useTradeStore';
+import useTradeStore from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { Send, Plus, Minus, Info, ShieldCheck } from 'lucide-react';
 

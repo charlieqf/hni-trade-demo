@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import useTradeStore from '../../store/useTradeStore';
+import useTradeStore, { USER_ROLE_NAMES } from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { XCircle, ExternalLink, History } from 'lucide-react';
 
@@ -32,7 +32,7 @@ const OrderManagement = () => {
             {/* Active Orders */}
             <div className="trade-panel flex flex-col">
                 <div className="p-4 border-b border-trade-border flex items-center justify-between">
-                    <h3 className="font-bold flex items-center gap-2">当前挂单 (当前角色: {currentUserRole})</h3>
+                    <h3 className="font-bold flex items-center gap-2">当前挂单 (当前机构: {USER_ROLE_NAMES[currentUserRole]})</h3>
                     <span className="text-[10px] bg-trade-blue/20 text-trade-blue px-2 py-0.5 rounded font-bold uppercase">
                         {myOrders.filter(o => o.status === 'OPEN').length} ACTIVE
                     </span>

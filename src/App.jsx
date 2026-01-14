@@ -6,7 +6,7 @@ import MarketDepth from './features/market/MarketDepth';
 import QuoteForm from './features/quote/QuoteForm';
 import OrderManagement from './features/trade/OrderManagement';
 import MatchingWorkbench from './features/matching/MatchingWorkbench';
-import useTradeStore, { USER_ROLES } from './store/useTradeStore';
+import useTradeStore from './store/useTradeStore';
 import { LayoutDashboard, Target, Briefcase, Settings, Gavel } from 'lucide-react';
 
 function App() {

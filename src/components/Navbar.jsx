@@ -1,5 +1,5 @@
 import React from 'react';
-import useTradeStore, { USER_ROLES } from '../store/useTradeStore';
+import useTradeStore, { USER_ROLES, USER_ROLE_NAMES } from '../store/useTradeStore';
 import { UserCircle, ShieldCheck, Activity } from 'lucide-react';
 
 const Navbar = () => {
