@@ -50,8 +50,8 @@ const LoginScreen = () => {
                         <div className="w-12 h-12 bg-trade-blue rounded-xl flex items-center justify-center font-bold text-white text-2xl shadow-lg">H</div>
                         <h1 className="text-4xl font-black tracking-tight text-white uppercase">海南国际清算所</h1>
                     </div>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                        大宗商品报价交易平台演示系统 - 请选择登录身份开启业务演示
+                    <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
+                        大宗商品现货交易与清算平台 - 请选择机构身份进入业务系统
                     </p>
                 </div>
 
@@ -87,7 +87,7 @@ const LoginScreen = () => {
                 </div>
 
                 <div className="text-center text-[11px] text-gray-600 font-medium tracking-widest uppercase">
-                    &copy; 2026 海南国际清算所 技术演示专用体系
+                    &copy; 2026 海南国际清算所 版权所有
                 </div>
             </div>
         </div>

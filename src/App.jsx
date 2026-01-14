@@ -99,7 +99,7 @@ function App() {
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-blue rounded-full"></span> Vercel Cloud: 已连接</span>
         </div>
         <div className="tracking-widest uppercase">
-          海南国际清算所 &copy; 2026 技术演示
+          海南国际清算所 &copy; 2026
         </div>
       </footer>
     </div>
