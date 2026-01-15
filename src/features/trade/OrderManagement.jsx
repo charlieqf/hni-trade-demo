@@ -135,10 +135,13 @@ const OrderManagement = () => {
                                     </td>
                                     <td className="trade-table-cell">
                                         <div className="flex items-center gap-4">
-                                            <span className="text-trade-blue text-[11px] font-bold whitespace-nowrap">● 已清算</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 bg-trade-blue rounded-full shadow-[0_0_8px_rgba(45,108,223,0.8)] animate-pulse"></span>
+                                                <span className="text-trade-blue text-[11px] font-black tracking-tighter uppercase whitespace-nowrap">已清算 (Settled)</span>
+                                            </div>
                                             <button
                                                 onClick={() => setSelectedTradeForReceipt(trade)}
-                                                className="text-[10px] text-trade-blue hover:bg-trade-blue/10 px-2 py-1 rounded border border-trade-blue/30 transition-all flex items-center gap-1 font-bold"
+                                                className="text-[9px] text-trade-blue hover:bg-trade-blue/10 px-2.5 py-1 rounded border border-trade-blue/30 transition-all flex items-center gap-1.5 font-bold uppercase"
                                             >
                                                 <ExternalLink size={10} />
                                                 查看仓单

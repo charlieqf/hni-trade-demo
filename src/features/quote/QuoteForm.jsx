@@ -164,9 +164,9 @@ const QuoteForm = () => {
                                     <button type="button" onClick={() => setBasis(b => b + 5)} className="w-10 h-10 rounded bg-trade-bg border border-trade-border hover:bg-white/5 flex items-center justify-center text-gray-400 transition-colors"><Plus size={16} /></button>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between bg-trade-blue/5 p-2 rounded border border-trade-blue/20 text-[11px] animate-pulse">
+                            <div className="flex items-center justify-between bg-trade-blue/10 p-2.5 rounded-lg border border-trade-blue/30 text-[11px] animate-in fade-in slide-in-from-bottom-1 duration-500 shadow-[0_0_15px_-3px_rgba(45,108,223,0.3)]">
                                 <span className="text-gray-400 font-bold uppercase tracking-tighter">折算实时报价:</span>
-                                <span className="text-trade-blue font-black font-mono">¥{finalPrice}</span>
+                                <span className="text-trade-blue font-black font-mono text-sm underline decoration-double decoration-trade-blue/30 underline-offset-4">¥{finalPrice}</span>
                             </div>
                         </div>
                     ) : (
@@ -263,8 +263,8 @@ const QuoteForm = () => {
                         <ShieldCheck size={40} className="text-trade-green" />
                     </div>
                     <div className="text-center">
-                        <h3 className="text-xl font-black text-white">指令发布成功</h3>
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">Order Verified & Broadcasted</p>
+                        <h3 className="text-xl font-black text-white tracking-widest uppercase">指令发布成功</h3>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] mt-2 opacity-80">Order Verified & Broadcasted</p>
                     </div>
                 </div>
             )}
