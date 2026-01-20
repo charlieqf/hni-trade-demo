@@ -18,8 +18,9 @@ export const USER_ROLE_NAMES = {
 const useTradeStore = create(
     persist(
         (set, get) => ({
-            currentUserRole: null, // Initial state is null for login wall
+            currentUserRole: null, // Not persisted, resets on reload/new tab
             selectedVariety: { categoryId: 'steel', typeId: 'rebar' },
+            notifications: [], // For toast messages
 
             // Orders: { id, role, roleName, type, price, quantity, varietyId, attributes, timestamp, status }
             orders: [
@@ -52,11 +53,20 @@ const useTradeStore = create(
                 set((state) => ({ orders: [newOrder, ...state.orders] }));
 
                 // Trigger auto-matching check
+                // We only run auto-match if the current user initiated the action to avoid double-matching in multi-tab scenarios
                 get().checkAutoMatch(newOrder);
             },
 
             cancelOrder: (orderId) => set((state) => ({
                 orders: state.orders.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o)
+            })),
+
+            addNotification: (notification) => set((state) => ({
+                notifications: [...state.notifications, { id: Math.random().toString(36).substr(2, 9), timestamp: Date.now(), ...notification }]
+            })),
+
+            removeNotification: (id) => set((state) => ({
+                notifications: state.notifications.filter(n => n.id !== id)
             })),
 
             checkAutoMatch: (newOrder) => {
@@ -111,13 +121,35 @@ const useTradeStore = create(
                         return o;
                     })
                 }));
+
+                // Trigger Notification
+                get().addNotification({
+                    type: 'SUCCESS',
+                    title: isManual ? '人工撮合成功' : '自动撮合成功',
+                    message: `${buyOrder.attributes['品牌'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}`,
+                    role: isManual ? 'ADMIN' : 'SYSTEM' // Who initiated
+                });
             },
+
+            resetSystem: () => set({
+                orders: [],
+                trades: [],
+                notifications: [],
+                selectedVariety: { categoryId: 'steel', typeId: 'rebar' }
+            }),
 
             logout: () => set({ currentUserRole: null }),
         }),
         {
             name: 'hni-trade-storage-v2',
             storage: createJSONStorage(() => localStorage),
+            // IMPORTANT: Exclude currentUserRole from persistence so each tab can have a different role
+            partialize: (state) => ({
+                orders: state.orders,
+                trades: state.trades,
+                selectedVariety: state.selectedVariety,
+                notifications: state.notifications
+            }),
         }
     )
 );

@@ -7,11 +7,25 @@ import QuoteForm from './features/quote/QuoteForm';
 import OrderManagement from './features/trade/OrderManagement';
 import MatchingWorkbench from './features/matching/MatchingWorkbench';
 import useTradeStore from './store/useTradeStore';
+import NotificationCenter from './components/NotificationCenter';
 import { LayoutDashboard, Target, Briefcase, Settings, Gavel } from 'lucide-react';
 
 function App() {
-  const { currentUserRole } = useTradeStore();
+  const { currentUserRole, resetSystem } = useTradeStore(); // Added resetSystem
   const [activeTab, setActiveTab] = useState('terminal'); // terminal, portfolio, matching, settings
+
+  // Cross-tab Synchronization Listener
+  React.useEffect(() => {
+    const handleStorageChange = (e) => {
+      // Rehydrate store when localStorage changes in another tab
+      if (e.key && e.key.includes('hni-trade-storage')) {
+        useTradeStore.persist.rehydrate();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const tabs = [
     { id: 'terminal', name: '交易终端', icon: <Target size={18} />, roles: ['BUYER', 'SELLER', 'MM', 'ADMIN'] },
@@ -84,10 +98,25 @@ function App() {
                   <p className="text-sm text-gray-500 max-w-xs mx-auto mt-2">
                     此处可动态配置交易品种、手续费率及清算规则。当前版本中属性模板已预设。
                   </p>
+
+                  <div className="mt-6 pt-6 border-t border-trade-border">
+                    <button
+                      onClick={() => {
+                        if (confirm('⚠️ 确定要重置所有系统数据吗？这将清除所有订单、成交和通知记录。')) {
+                          resetSystem();
+                          alert('系统已重置');
+                        }
+                      }}
+                      className="px-4 py-2 bg-red-900/30 text-red-400 border border-red-900/50 rounded-lg text-xs font-bold hover:bg-red-900/50 transition-all"
+                    >
+                      重置系统数据 (Reset Demo Data)
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
+          <NotificationCenter />
         </main>
       </div>
 
