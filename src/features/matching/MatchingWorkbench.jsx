@@ -4,24 +4,27 @@ import { Gavel, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const MatchingWorkbench = () => {
     const { orders, executeTrade, selectedVariety } = useTradeStore();
-    const [selectedBid, setSelectedBid] = useState(null);
-    const [selectedAsk, setSelectedAsk] = useState(null);
+    const [manualPrice, setManualPrice] = useState('');
+    const [manualQty, setManualQty] = useState('');
+    const [manualNotes, setManualNotes] = useState('');
 
-    const openBids = useMemo(() =>
-        orders.filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === selectedVariety.typeId),
-        [orders, selectedVariety]
-    );
-
-    const openAsks = useMemo(() =>
-        orders.filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === selectedVariety.typeId),
-        [orders, selectedVariety]
-    );
+    // Update defaults when selection changes
+    React.useEffect(() => {
+        if (selectedBid && selectedAsk) {
+            setManualPrice((selectedBid.price + selectedAsk.price) / 2);
+            setManualQty(Math.min(selectedBid.quantity, selectedAsk.quantity));
+            setManualNotes('协议成交');
+        }
+    }, [selectedBid, selectedAsk]);
 
     const handleMatch = () => {
         if (selectedBid && selectedAsk) {
-            executeTrade(selectedBid, selectedAsk, true); // true for manual
+            executeTrade(selectedBid, selectedAsk, true, Number(manualPrice), Number(manualQty), manualNotes);
             setSelectedBid(null);
             setSelectedAsk(null);
+            setManualPrice('');
+            setManualQty('');
+            setManualNotes('');
         }
     };
 
@@ -55,6 +58,7 @@ const MatchingWorkbench = () => {
                                         <span className="text-xs font-mono text-gray-500">{bid.quantity} 吨</span>
                                     </div>
                                     <div className="flex gap-2 flex-wrap">
+                                        <span className="text-[10px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 font-bold">{bid.roleName || '买方'}</span>
                                         {Object.entries(bid.attributes).map(([k, v]) => v && (
                                             <span key={k} className="text-[10px] bg-trade-border/30 px-1.5 py-0.5 rounded text-gray-400">
                                                 {v}
@@ -83,6 +87,7 @@ const MatchingWorkbench = () => {
                                         <span className="text-xs font-mono text-gray-500">{ask.quantity} 吨</span>
                                     </div>
                                     <div className="flex gap-2 flex-wrap">
+                                        <span className="text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded text-red-400 font-bold">{ask.roleName || '卖方'}</span>
                                         {Object.entries(ask.attributes).map(([k, v]) => v && (
                                             <span key={k} className="text-[10px] bg-trade-border/30 px-1.5 py-0.5 rounded text-gray-400">
                                                 {v}
@@ -97,30 +102,58 @@ const MatchingWorkbench = () => {
                 </div>
 
                 {/* Action Area */}
-                <div className="mt-8 pt-6 border-t border-trade-border flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        <div className={`p-4 rounded-lg border flex flex-col items-center gap-1 w-32 ${selectedBid ? 'border-trade-green bg-trade-green/5' : 'border-dashed border-trade-border'}`}>
-                            <span className="text-[10px] text-gray-500 font-bold">已选买单</span>
-                            <span className="text-sm font-bold">{selectedBid ? `${selectedBid.price}元` : '--'}</span>
+                <div className="mt-8 pt-6 border-t border-trade-border">
+                    {selectedBid && selectedAsk ? (
+                        <div className="flex flex-col gap-6 animate-in slide-in-from-bottom duration-500">
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-500 font-bold uppercase">成交均价 (元)</label>
+                                    <input
+                                        type="number"
+                                        value={manualPrice}
+                                        onChange={(e) => setManualPrice(e.target.value)}
+                                        className="bg-trade-bg border border-trade-blue/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-trade-blue"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-500 font-bold uppercase">成交数量 (吨)</label>
+                                    <input
+                                        type="number"
+                                        value={manualQty}
+                                        onChange={(e) => setManualQty(e.target.value)}
+                                        max={Math.min(selectedBid.quantity, selectedAsk.quantity)}
+                                        className="bg-trade-bg border border-trade-blue/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-trade-blue"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5 col-span-2">
+                                    <label className="text-[10px] text-gray-500 font-bold uppercase">成交备注 (Audit Notes)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="例如：线下协议平仓 / 异常波动校准"
+                                        value={manualNotes}
+                                        onChange={(e) => setManualNotes(e.target.value)}
+                                        className="bg-trade-bg border border-trade-blue/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-trade-blue"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <div className="text-xs text-gray-400 italic">
+                                    正在撮合: <span className="text-trade-green font-bold">{selectedBid.roleName}</span> 的买单与 <span className="text-trade-red font-bold">{selectedAsk.roleName}</span> 的卖单
+                                </div>
+                                <button
+                                    onClick={handleMatch}
+                                    className="px-12 py-3 bg-trade-blue hover:bg-trade-blue/90 text-white rounded-xl font-bold shadow-xl flex items-center gap-3 transition-all transform hover:scale-[1.02]"
+                                >
+                                    <CheckCircle2 size={18} />
+                                    确认执行人工干预撮合
+                                </button>
+                            </div>
                         </div>
-                        <div className="text-trade-blue animate-pulse"><CheckCircle2 size={32} /></div>
-                        <div className={`p-4 rounded-lg border flex flex-col items-center gap-1 w-32 ${selectedAsk ? 'border-trade-red bg-trade-red/5' : 'border-dashed border-trade-border'}`}>
-                            <span className="text-[10px] text-gray-500 font-bold">已选卖单</span>
-                            <span className="text-sm font-bold">{selectedAsk ? `${selectedAsk.price}元` : '--'}</span>
+                    ) : (
+                        <div className="py-8 text-center border-2 border-dashed border-trade-border rounded-xl">
+                            <p className="text-gray-500 text-sm">请从上方池中各选择一笔买单和卖单以启用人工撮合功能</p>
                         </div>
-                    </div>
-
-                    <button
-                        disabled={!selectedBid || !selectedAsk}
-                        onClick={handleMatch}
-                        className={`px-12 py-4 rounded-xl font-bold flex items-center gap-3 transition-all ${selectedBid && selectedAsk
-                                ? 'bg-trade-blue hover:bg-trade-blue/90 text-white shadow-xl hover:translate-y-[-2px]'
-                                : 'bg-trade-border text-gray-500 cursor-not-allowed'
-                            }`}
-                    >
-                        <Gavel size={20} />
-                        执行人工匹配成交
-                    </button>
+                    )}
                 </div>
             </div>
 

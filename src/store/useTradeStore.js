@@ -73,10 +73,19 @@ const useTradeStore = create(
                 const state = get();
                 const { orders } = state;
 
-                // Simple price/time match logic
+                // Price/Time/Attribute match logic
                 if (newOrder.type === 'BID') {
                     const matchingAsk = orders
-                        .filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === newOrder.typeId && o.price <= newOrder.price)
+                        .filter(o => {
+                            if (o.status !== 'OPEN' || o.type !== 'ASK' || o.typeId !== newOrder.typeId || o.price > newOrder.price) return false;
+
+                            // Check Attributes (Brand, Spec, Material, etc.)
+                            return Object.entries(o.attributes).every(([key, value]) => {
+                                // If either value is '任意', it matches anything
+                                if (!newOrder.attributes[key] || newOrder.attributes[key] === '任意' || value === '任意') return true;
+                                return newOrder.attributes[key] === value;
+                            });
+                        })
                         .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp)[0];
 
                     if (matchingAsk) {
@@ -84,7 +93,15 @@ const useTradeStore = create(
                     }
                 } else {
                     const matchingBid = orders
-                        .filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === newOrder.typeId && o.price >= newOrder.price)
+                        .filter(o => {
+                            if (o.status !== 'OPEN' || o.type !== 'BID' || o.typeId !== newOrder.typeId || o.price < newOrder.price) return false;
+
+                            // Check Attributes
+                            return Object.entries(o.attributes).every(([key, value]) => {
+                                if (!newOrder.attributes[key] || newOrder.attributes[key] === '任意' || value === '任意') return true;
+                                return newOrder.attributes[key] === value;
+                            });
+                        })
                         .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp)[0];
 
                     if (matchingBid) {
@@ -93,7 +110,7 @@ const useTradeStore = create(
                 }
             },
 
-            executeTrade: (buyOrder, sellOrder, isManual = false, manualPrice = null, manualQty = null) => {
+            executeTrade: (buyOrder, sellOrder, isManual = false, manualPrice = null, manualQty = null, manualNotes = null) => {
                 const tradePrice = manualPrice || (isManual ? (buyOrder.price + sellOrder.price) / 2 : sellOrder.price);
                 const tradeQty = manualQty || Math.min(buyOrder.quantity, sellOrder.quantity);
 
@@ -106,7 +123,8 @@ const useTradeStore = create(
                     categoryId: buyOrder.categoryId,
                     typeId: buyOrder.typeId,
                     timestamp: Date.now(),
-                    matchedBy: isManual ? 'MANUAL' : 'AUTO'
+                    matchedBy: isManual ? 'MANUAL' : 'AUTO',
+                    notes: manualNotes
                 };
 
                 set((state) => ({
@@ -126,7 +144,7 @@ const useTradeStore = create(
                 get().addNotification({
                     type: 'SUCCESS',
                     title: isManual ? '人工撮合成功' : '自动撮合成功',
-                    message: `${buyOrder.attributes['品牌'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}`,
+                    message: `${buyOrder.attributes['品牌'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
                     role: isManual ? 'ADMIN' : 'SYSTEM' // Who initiated
                 });
             },

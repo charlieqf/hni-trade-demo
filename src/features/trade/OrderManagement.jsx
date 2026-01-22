@@ -129,7 +129,10 @@ const OrderManagement = () => {
                                     <td className="trade-table-cell font-mono text-trade-green font-bold">{trade.price}</td>
                                     <td className="trade-table-cell font-mono">{trade.quantity}</td>
                                     <td className="trade-table-cell">
-                                        <span className="text-[10px] bg-trade-border px-1.5 py-0.5 rounded text-gray-400">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${trade.matchedBy === 'AUTO'
+                                                ? 'bg-trade-border text-gray-400'
+                                                : 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                                            }`}>
                                             {trade.matchedBy === 'AUTO' ? '系统自动' : '人工撮合'}
                                         </span>
                                     </td>
