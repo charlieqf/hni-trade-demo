@@ -4,9 +4,21 @@ import { Gavel, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const MatchingWorkbench = () => {
     const { orders, executeTrade, selectedVariety } = useTradeStore();
+    const [selectedBid, setSelectedBid] = useState(null);
+    const [selectedAsk, setSelectedAsk] = useState(null);
     const [manualPrice, setManualPrice] = useState('');
     const [manualQty, setManualQty] = useState('');
     const [manualNotes, setManualNotes] = useState('');
+
+    const openBids = useMemo(() =>
+        orders.filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === selectedVariety.typeId),
+        [orders, selectedVariety]
+    );
+
+    const openAsks = useMemo(() =>
+        orders.filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === selectedVariety.typeId),
+        [orders, selectedVariety]
+    );
 
     // Update defaults when selection changes
     React.useEffect(() => {

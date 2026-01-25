@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import useTradeStore from '../../store/useTradeStore';
+import useTradeStore, { useUserStore } from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { Send, Plus, Minus, Info, ShieldCheck, Activity, Scale, CreditCard } from 'lucide-react';
 
 const FUTURES_REFERENCE = 3820; // Mock current futures price
 
 const QuoteForm = () => {
-    const { currentUserRole, selectedVariety, addOrder } = useTradeStore();
+    const { currentUserRole } = useUserStore();
+    const { selectedVariety, addOrder } = useTradeStore();
     const [type, setType] = useState('BID'); // BID or ASK
     const [price, setPrice] = useState(3840);
     const [isBasis, setIsBasis] = useState(false); // New: Basis vs Fixed

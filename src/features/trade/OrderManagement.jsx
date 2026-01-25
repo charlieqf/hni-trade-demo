@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import useTradeStore, { USER_ROLE_NAMES } from '../../store/useTradeStore';
+import useTradeStore, { USER_ROLE_NAMES, useUserStore } from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { XCircle, ExternalLink, History, X, ShieldCheck as Shield, FileText } from 'lucide-react';
 
 const OrderManagement = () => {
-    const { orders, cancelOrder, trades, currentUserRole } = useTradeStore();
+    const { currentUserRole } = useUserStore();
+    const { orders, cancelOrder, trades } = useTradeStore();
     const [selectedTradeForReceipt, setSelectedTradeForReceipt] = React.useState(null);
 
     const myOrders = useMemo(() =>
@@ -130,8 +131,8 @@ const OrderManagement = () => {
                                     <td className="trade-table-cell font-mono">{trade.quantity}</td>
                                     <td className="trade-table-cell">
                                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${trade.matchedBy === 'AUTO'
-                                                ? 'bg-trade-border text-gray-400'
-                                                : 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                                            ? 'bg-trade-border text-gray-400'
+                                            : 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.4)]'
                                             }`}>
                                             {trade.matchedBy === 'AUTO' ? '系统自动' : '人工撮合'}
                                         </span>

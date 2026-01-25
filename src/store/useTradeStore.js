@@ -15,10 +15,24 @@ export const USER_ROLE_NAMES = {
     ADMIN: '系统管理员 (HNI)',
 };
 
+// Separate store for Per-Tab User Role (Session Storage)
+export const useUserStore = create(
+    persist(
+        (set) => ({
+            currentUserRole: null,
+            setCurrentRole: (role) => set({ currentUserRole: role }),
+            logout: () => set({ currentUserRole: null }),
+        }),
+        {
+            name: 'hni-user-session',
+            storage: createJSONStorage(() => sessionStorage),
+        }
+    )
+);
+
 const useTradeStore = create(
     persist(
         (set, get) => ({
-            currentUserRole: null, // Not persisted, resets on reload/new tab
             selectedVariety: { categoryId: 'steel', typeId: 'rebar' },
             notifications: [], // For toast messages
 
@@ -37,8 +51,6 @@ const useTradeStore = create(
             trades: [
                 { id: 't1', buyOrderId: 'mock-buy-1', sellOrderId: 'mock-sell-1', price: 3840, quantity: 50, categoryId: 'steel', typeId: 'rebar', timestamp: Date.now() - 200000, matchedBy: 'AUTO' },
             ],
-
-            setCurrentRole: (role) => set({ currentUserRole: role }),
 
             setSelectedVariety: (variety) => set({ selectedVariety: variety }),
 
@@ -155,8 +167,6 @@ const useTradeStore = create(
                 notifications: [],
                 selectedVariety: { categoryId: 'steel', typeId: 'rebar' }
             }),
-
-            logout: () => set({ currentUserRole: null }),
         }),
         {
             name: 'hni-trade-storage-v2',

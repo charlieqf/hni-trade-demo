@@ -6,12 +6,13 @@ import MarketDepth from './features/market/MarketDepth';
 import QuoteForm from './features/quote/QuoteForm';
 import OrderManagement from './features/trade/OrderManagement';
 import MatchingWorkbench from './features/matching/MatchingWorkbench';
-import useTradeStore from './store/useTradeStore';
+import useTradeStore, { useUserStore } from './store/useTradeStore';
 import NotificationCenter from './components/NotificationCenter';
 import { LayoutDashboard, Target, Briefcase, Settings, Gavel } from 'lucide-react';
 
 function App() {
-  const { currentUserRole, resetSystem } = useTradeStore(); // Added resetSystem
+  const { currentUserRole } = useUserStore();
+  const { resetSystem } = useTradeStore();
   const [activeTab, setActiveTab] = useState('terminal'); // terminal, portfolio, matching, settings
 
   // Cross-tab Synchronization Listener

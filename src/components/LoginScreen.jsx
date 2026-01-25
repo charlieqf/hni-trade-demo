@@ -1,16 +1,16 @@
 import React from 'react';
-import useTradeStore from '../store/useTradeStore';
-import { UserCircle, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
+import { useUserStore, USER_ROLE_NAMES, USER_ROLES } from '../store/useTradeStore';
+import { ShieldCheck, User as UserIcon, Store, Landmark, ArrowRight, Activity } from 'lucide-react';
 
 const LoginScreen = () => {
-    const { setCurrentRole } = useTradeStore();
+    const { setCurrentRole } = useUserStore();
 
     const identityCards = [
         {
             id: 'BUYER',
             name: '海汽大宗 (买方)',
             desc: '大型大宗商品交易商，负责采购与库存管理',
-            icon: <UserCircle className="text-trade-blue" size={40} />,
+            icon: <Store className="text-trade-blue" size={40} />,
             color: 'border-trade-blue/30',
             rating: 'AAA'
         },
@@ -18,7 +18,7 @@ const LoginScreen = () => {
             id: 'SELLER',
             name: '沙钢贸易 (卖方)',
             desc: '钢厂下属贸易机构，发布一手现货货源',
-            icon: <UserCircle className="text-trade-red" size={40} />,
+            icon: <Landmark className="text-trade-red" size={40} />,
             color: 'border-trade-red/30',
             rating: 'AAA'
         },
