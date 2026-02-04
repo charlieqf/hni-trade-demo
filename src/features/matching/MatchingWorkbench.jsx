@@ -9,15 +9,20 @@ const MatchingWorkbench = () => {
     const [manualPrice, setManualPrice] = useState('');
     const [manualQty, setManualQty] = useState('');
     const [manualNotes, setManualNotes] = useState('');
+    const varietyTypeId = selectedVariety?.typeId;
 
     const openBids = useMemo(() =>
-        orders.filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === selectedVariety.typeId),
-        [orders, selectedVariety]
+        varietyTypeId
+            ? orders.filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === varietyTypeId)
+            : [],
+        [orders, varietyTypeId]
     );
 
     const openAsks = useMemo(() =>
-        orders.filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === selectedVariety.typeId),
-        [orders, selectedVariety]
+        varietyTypeId
+            ? orders.filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === varietyTypeId)
+            : [],
+        [orders, varietyTypeId]
     );
 
     // Update defaults when selection changes
@@ -31,7 +36,11 @@ const MatchingWorkbench = () => {
 
     const handleMatch = () => {
         if (selectedBid && selectedAsk) {
-            executeTrade(selectedBid, selectedAsk, true, Number(manualPrice), Number(manualQty), manualNotes);
+            const priceValue = Number(manualPrice);
+            const qtyValue = Number(manualQty);
+            const maxQty = Math.min(selectedBid.quantity, selectedAsk.quantity);
+            const finalQty = Number.isFinite(qtyValue) && qtyValue > 0 ? Math.min(qtyValue, maxQty) : maxQty;
+            executeTrade(selectedBid, selectedAsk, true, Number.isFinite(priceValue) ? priceValue : null, finalQty, manualNotes);
             setSelectedBid(null);
             setSelectedAsk(null);
             setManualPrice('');
@@ -70,8 +79,8 @@ const MatchingWorkbench = () => {
                                         <span className="text-xs font-mono text-gray-500">{bid.quantity} 吨</span>
                                     </div>
                                     <div className="flex gap-2 flex-wrap">
-                                        <span className="text-[10px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 font-bold">{bid.roleName || '买方'}</span>
-                                        {Object.entries(bid.attributes).map(([k, v]) => v && (
+                                        <span className="text-[10px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 font-bold">{bid.roleName || bid.role || '买方'}</span>
+                                        {Object.entries(bid.attributes || {}).map(([k, v]) => v && (
                                             <span key={k} className="text-[10px] bg-trade-border/30 px-1.5 py-0.5 rounded text-gray-400">
                                                 {v}
                                             </span>
@@ -99,8 +108,8 @@ const MatchingWorkbench = () => {
                                         <span className="text-xs font-mono text-gray-500">{ask.quantity} 吨</span>
                                     </div>
                                     <div className="flex gap-2 flex-wrap">
-                                        <span className="text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded text-red-400 font-bold">{ask.roleName || '卖方'}</span>
-                                        {Object.entries(ask.attributes).map(([k, v]) => v && (
+                                        <span className="text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded text-red-400 font-bold">{ask.roleName || ask.role || '卖方'}</span>
+                                        {Object.entries(ask.attributes || {}).map(([k, v]) => v && (
                                             <span key={k} className="text-[10px] bg-trade-border/30 px-1.5 py-0.5 rounded text-gray-400">
                                                 {v}
                                             </span>
@@ -134,6 +143,7 @@ const MatchingWorkbench = () => {
                                         value={manualQty}
                                         onChange={(e) => setManualQty(e.target.value)}
                                         max={Math.min(selectedBid.quantity, selectedAsk.quantity)}
+                                        min={1}
                                         className="bg-trade-bg border border-trade-blue/40 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-trade-blue"
                                     />
                                 </div>
@@ -150,7 +160,7 @@ const MatchingWorkbench = () => {
                             </div>
                             <div className="flex justify-between items-center">
                                 <div className="text-xs text-gray-400 italic">
-                                    正在撮合: <span className="text-trade-green font-bold">{selectedBid.roleName}</span> 的买单与 <span className="text-trade-red font-bold">{selectedAsk.roleName}</span> 的卖单
+                                    正在撮合: <span className="text-trade-green font-bold">{selectedBid.roleName || selectedBid.role || '买方'}</span> 的买单与 <span className="text-trade-red font-bold">{selectedAsk.roleName || selectedAsk.role || '卖方'}</span> 的卖单
                                 </div>
                                 <button
                                     onClick={handleMatch}

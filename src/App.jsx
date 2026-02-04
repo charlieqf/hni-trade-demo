@@ -17,15 +17,43 @@ function App() {
 
   // Cross-tab Synchronization Listener
   React.useEffect(() => {
+    const rehydrateAndReconcile = () => {
+      try {
+        const result = useTradeStore.persist.rehydrate();
+        if (result && typeof result.then === 'function') {
+          result.then(() => useTradeStore.getState().reconcileAutoMatches?.());
+          return;
+        }
+      } catch {
+        // ignore and try reconcile anyway
+      }
+      useTradeStore.getState().reconcileAutoMatches?.();
+    };
+
     const handleStorageChange = (e) => {
       // Rehydrate store when localStorage changes in another tab
       if (e.key && e.key.includes('hni-trade-storage')) {
-        useTradeStore.persist.rehydrate();
+        rehydrateAndReconcile();
       }
     };
 
+    let channel;
+    try {
+      channel = new BroadcastChannel('hni-trade-sync');
+      channel.onmessage = (event) => {
+        if (event?.data?.type) {
+          rehydrateAndReconcile();
+        }
+      };
+    } catch {
+      channel = null;
+    }
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (channel) channel.close();
+    };
   }, []);
 
   const tabs = [

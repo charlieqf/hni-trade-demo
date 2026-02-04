@@ -59,7 +59,8 @@ const useTradeStore = create(
                     id: Math.random().toString(36).substr(2, 9),
                     timestamp: Date.now(),
                     status: 'OPEN',
-                    ...orderData
+                    ...orderData,
+                    attributes: orderData.attributes || {}
                 };
 
                 set((state) => ({ orders: [newOrder, ...state.orders] }));
@@ -67,6 +68,7 @@ const useTradeStore = create(
                 // Trigger auto-matching check
                 // We only run auto-match if the current user initiated the action to avoid double-matching in multi-tab scenarios
                 get().checkAutoMatch(newOrder);
+                get().broadcastSync?.('order_added', { orderId: newOrder.id });
             },
 
             cancelOrder: (orderId) => set((state) => ({
@@ -84,6 +86,14 @@ const useTradeStore = create(
             checkAutoMatch: (newOrder) => {
                 const state = get();
                 const { orders } = state;
+                const incomingAttrs = newOrder.attributes || {};
+                const isAttrMatch = (candidate) => {
+                    const candidateAttrs = candidate.attributes || {};
+                    return Object.entries(candidateAttrs).every(([key, value]) => {
+                        if (!incomingAttrs[key] || incomingAttrs[key] === '任意' || value === '任意') return true;
+                        return incomingAttrs[key] === value;
+                    });
+                };
 
                 // Price/Time/Attribute match logic
                 if (newOrder.type === 'BID') {
@@ -92,11 +102,7 @@ const useTradeStore = create(
                             if (o.status !== 'OPEN' || o.type !== 'ASK' || o.typeId !== newOrder.typeId || o.price > newOrder.price) return false;
 
                             // Check Attributes (Brand, Spec, Material, etc.)
-                            return Object.entries(o.attributes).every(([key, value]) => {
-                                // If either value is '任意', it matches anything
-                                if (!newOrder.attributes[key] || newOrder.attributes[key] === '任意' || value === '任意') return true;
-                                return newOrder.attributes[key] === value;
-                            });
+                            return isAttrMatch(o);
                         })
                         .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp)[0];
 
@@ -109,10 +115,7 @@ const useTradeStore = create(
                             if (o.status !== 'OPEN' || o.type !== 'BID' || o.typeId !== newOrder.typeId || o.price < newOrder.price) return false;
 
                             // Check Attributes
-                            return Object.entries(o.attributes).every(([key, value]) => {
-                                if (!newOrder.attributes[key] || newOrder.attributes[key] === '任意' || value === '任意') return true;
-                                return newOrder.attributes[key] === value;
-                            });
+                            return isAttrMatch(o);
                         })
                         .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp)[0];
 
@@ -122,9 +125,51 @@ const useTradeStore = create(
                 }
             },
 
+            reconcileAutoMatches: () => {
+                let loopGuard = 0;
+                while (loopGuard < 50) {
+                    loopGuard += 1;
+                    const state = get();
+                    const openBids = state.orders
+                        .filter(o => o.status === 'OPEN' && o.type === 'BID')
+                        .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp);
+                    const openAsks = state.orders
+                        .filter(o => o.status === 'OPEN' && o.type === 'ASK')
+                        .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp);
+
+                    let matched = false;
+                    for (const bid of openBids) {
+                        const bidAttrs = bid.attributes || {};
+                        const matchingAsk = openAsks.find(ask => {
+                            if (ask.typeId !== bid.typeId || ask.price > bid.price) return false;
+                            const askAttrs = ask.attributes || {};
+                            return Object.entries(askAttrs).every(([key, value]) => {
+                                if (!bidAttrs[key] || bidAttrs[key] === '任意' || value === '任意') return true;
+                                return bidAttrs[key] === value;
+                            });
+                        });
+                        if (matchingAsk) {
+                            state.executeTrade(bid, matchingAsk);
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (!matched) break;
+                }
+            },
+
             executeTrade: (buyOrder, sellOrder, isManual = false, manualPrice = null, manualQty = null, manualNotes = null) => {
-                const tradePrice = manualPrice || (isManual ? (buyOrder.price + sellOrder.price) / 2 : sellOrder.price);
-                const tradeQty = manualQty || Math.min(buyOrder.quantity, sellOrder.quantity);
+                if (buyOrder.status !== 'OPEN' || sellOrder.status !== 'OPEN') return;
+                const normalizedManualPrice = Number.isFinite(manualPrice) && manualPrice > 0 ? manualPrice : null;
+                const normalizedManualQty = Number.isFinite(manualQty) && manualQty > 0 ? manualQty : null;
+                const tradePrice = normalizedManualPrice ?? (isManual ? (buyOrder.price + sellOrder.price) / 2 : sellOrder.price);
+                const maxQty = Math.min(buyOrder.quantity, sellOrder.quantity);
+                const tradeQty = Math.min(normalizedManualQty ?? maxQty, maxQty);
+                if (!Number.isFinite(tradeQty) || tradeQty <= 0) return;
+                const matchKey = `${buyOrder.id}|${sellOrder.id}|${tradePrice}|${tradeQty}`;
+                const alreadyMatched = get().trades.some(t => t.matchKey === matchKey);
+                if (alreadyMatched) return;
 
                 const newTrade = {
                     id: 't' + Math.random().toString(36).substr(2, 9),
@@ -136,7 +181,8 @@ const useTradeStore = create(
                     typeId: buyOrder.typeId,
                     timestamp: Date.now(),
                     matchedBy: isManual ? 'MANUAL' : 'AUTO',
-                    notes: manualNotes
+                    notes: manualNotes,
+                    matchKey
                 };
 
                 set((state) => ({
@@ -156,9 +202,23 @@ const useTradeStore = create(
                 get().addNotification({
                     type: 'SUCCESS',
                     title: isManual ? '人工撮合成功' : '自动撮合成功',
-                    message: `${buyOrder.attributes['品牌'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
+                    message: `${(buyOrder.attributes || {})['品牌'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
                     role: isManual ? 'ADMIN' : 'SYSTEM' // Who initiated
                 });
+
+                get().broadcastSync?.('trade_executed', { tradeId: newTrade.id });
+            },
+
+            broadcastSync: (type, payload = {}) => {
+                if (typeof window === 'undefined') return;
+                try {
+                    if (!window.__hniTradeChannel) {
+                        window.__hniTradeChannel = new BroadcastChannel('hni-trade-sync');
+                    }
+                    window.__hniTradeChannel.postMessage({ type, payload, ts: Date.now() });
+                } catch {
+                    // No-op for unsupported browsers
+                }
             },
 
             resetSystem: () => set({

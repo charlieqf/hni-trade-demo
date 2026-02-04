@@ -6,20 +6,21 @@ import { XCircle, ExternalLink, History, X, ShieldCheck as Shield, FileText } fr
 const OrderManagement = () => {
     const { currentUserRole } = useUserStore();
     const { orders, cancelOrder, trades } = useTradeStore();
+    const isAdmin = currentUserRole === 'ADMIN';
     const [selectedTradeForReceipt, setSelectedTradeForReceipt] = React.useState(null);
 
-    const myOrders = useMemo(() =>
-        orders.filter(o => o.role === currentUserRole),
-        [orders, currentUserRole]
-    );
+    const myOrders = useMemo(() => (
+        isAdmin ? orders : orders.filter(o => o.role === currentUserRole)
+    ), [orders, currentUserRole, isAdmin]);
 
     const myTrades = useMemo(() => {
+        if (isAdmin) return trades;
         return trades.filter(t => {
             const buyOrder = orders.find(o => o.id === t.buyOrderId);
             const sellOrder = orders.find(o => o.id === t.sellOrderId);
             return buyOrder?.role === currentUserRole || sellOrder?.role === currentUserRole;
         });
-    }, [trades, orders, currentUserRole]);
+    }, [trades, orders, currentUserRole, isAdmin]);
 
     const getVarietyName = (typeId) => {
         for (const cat of TRADING_VARIETIES) {
@@ -34,7 +35,7 @@ const OrderManagement = () => {
             {/* Active Orders */}
             <div className="trade-panel flex flex-col">
                 <div className="p-4 border-b border-trade-border flex items-center justify-between">
-                    <h3 className="font-bold flex items-center gap-2">当前挂单 (当前机构: {USER_ROLE_NAMES[currentUserRole]})</h3>
+                    <h3 className="font-bold flex items-center gap-2">当前挂单 (当前机构: {isAdmin ? '全市场' : USER_ROLE_NAMES[currentUserRole]})</h3>
                     <span className="text-[10px] bg-trade-blue/20 text-trade-blue px-2 py-0.5 rounded font-bold uppercase">
                         {myOrders.filter(o => o.status === 'OPEN').length} ACTIVE
                     </span>
