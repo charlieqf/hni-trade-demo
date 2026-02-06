@@ -7,7 +7,7 @@ const FUTURES_REFERENCE = 3820; // Mock current futures price
 
 const QuoteForm = () => {
     const { currentUserRole } = useUserStore();
-    const { selectedVariety, addOrder } = useTradeStore();
+    const { selectedVariety, addOrder, orders } = useTradeStore();
     const [type, setType] = useState('BID'); // BID or ASK
     const [price, setPrice] = useState(3840);
     const [isBasis, setIsBasis] = useState(false); // New: Basis vs Fixed
@@ -21,6 +21,18 @@ const QuoteForm = () => {
         const cat = TRADING_VARIETIES.find(c => c.id === selectedVariety.categoryId);
         return cat?.subTypes.find(t => t.id === selectedVariety.typeId);
     }, [selectedVariety]);
+
+    const bestBid = useMemo(() => (
+        orders
+            .filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === selectedVariety.typeId)
+            .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp)[0]
+    ), [orders, selectedVariety]);
+
+    const bestAsk = useMemo(() => (
+        orders
+            .filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === selectedVariety.typeId)
+            .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp)[0]
+    ), [orders, selectedVariety]);
 
     // Reset attributes when variety changes
     useEffect(() => {
@@ -215,6 +227,40 @@ const QuoteForm = () => {
                         <div className="space-y-0.5">
                             <div className="text-[9px] text-trade-yellow uppercase font-black tracking-widest">预估需划付保证金</div>
                             <div className="text-xs font-mono text-trade-yellow font-bold">¥{(estimatedMargin / 10000).toFixed(2)} 万</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Strategy Presets (Read-only) */}
+                <div className="bg-trade-card/40 rounded-lg p-3 border border-trade-border/50 space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                        <span className="flex items-center gap-1"><Info size={10} className="text-trade-blue" /> Strategy Presets</span>
+                        <span className="text-[9px] text-gray-500">Read-only</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-[11px]">
+                        <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
+                            <span className="text-gray-400">稳健买方: 买一 +5</span>
+                            <span className="font-mono text-trade-green font-bold">
+                                {bestBid ? `¥${bestBid.price + 5}` : '--'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
+                            <span className="text-gray-400">稳健卖方: 卖一 -5</span>
+                            <span className="font-mono text-trade-red font-bold">
+                                {bestAsk ? `¥${bestAsk.price - 5}` : '--'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
+                            <span className="text-gray-400">做市参考: 中间价</span>
+                            <span className="font-mono text-trade-blue font-bold">
+                                {bestBid && bestAsk ? `¥${((bestBid.price + bestAsk.price) / 2).toFixed(0)}` : '--'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
+                            <span className="text-gray-400">基差参考: 期货 + 基差</span>
+                            <span className="font-mono text-gray-200 font-bold">
+                                ¥{finalPrice}
+                            </span>
                         </div>
                     </div>
                 </div>

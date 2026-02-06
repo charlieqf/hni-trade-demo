@@ -3,6 +3,8 @@ import useTradeStore from '../../store/useTradeStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
+const FUTURES_REFERENCE = 3820;
+
 const MarketDepth = () => {
     const { orders, selectedVariety, trades } = useTradeStore();
 
@@ -26,6 +28,18 @@ const MarketDepth = () => {
             .reverse(),
         [orders, selectedVariety]);
 
+    const bestBid = useMemo(() => (
+        orders
+            .filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === selectedVariety.typeId)
+            .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp)[0]
+    ), [orders, selectedVariety]);
+
+    const bestAsk = useMemo(() => (
+        orders
+            .filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === selectedVariety.typeId)
+            .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp)[0]
+    ), [orders, selectedVariety]);
+
     const latestTrade = trades.find(t => t.typeId === selectedVariety.typeId);
 
     return (
@@ -47,6 +61,47 @@ const MarketDepth = () => {
                         {latestTrade && <TrendingUp size={18} className="inline ml-1 mb-1" />}
                     </div>
                     <div className="text-xs text-gray-500">最新成交价</div>
+                </div>
+            </div>
+
+            {/* Market Info Panel */}
+            <div className="trade-panel p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Reference</span>
+                    <span className="font-mono text-trade-blue font-bold">¥{FUTURES_REFERENCE}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Best Bid</span>
+                    <span className="font-mono text-trade-green font-bold">{bestBid ? `¥${bestBid.price}` : '--'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Best Ask</span>
+                    <span className="font-mono text-trade-red font-bold">{bestAsk ? `¥${bestAsk.price}` : '--'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Spread</span>
+                    <span className="font-mono text-gray-200 font-bold">
+                        {bestBid && bestAsk ? `¥${(bestAsk.price - bestBid.price).toFixed(2)}` : '--'}
+                    </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Last Trade</span>
+                    <span className="font-mono text-trade-green font-bold">{latestTrade ? `¥${latestTrade.price}` : '--'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Last Qty</span>
+                    <span className="font-mono text-gray-300 font-bold">{latestTrade ? `${latestTrade.quantity}` : '--'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Trend</span>
+                    <span className="flex items-center gap-1 text-gray-300 font-bold">
+                        {latestTrade ? <TrendingUp size={14} className="text-trade-green" /> : <TrendingDown size={14} className="text-gray-500" />}
+                        {latestTrade ? 'UP' : 'FLAT'}
+                    </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px]">Depth</span>
+                    <span className="font-mono text-gray-300 font-bold">{(bids.length + asks.length) || '--'}</span>
                 </div>
             </div>
 
