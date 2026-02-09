@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
@@ -17,39 +17,39 @@ function App() {
 
   // Cross-tab Synchronization Listener
   React.useEffect(() => {
-    const rehydrateAndReconcile = () => {
-      try {
-        const result = useTradeStore.persist.rehydrate();
-        if (result && typeof result.then === 'function') {
-          result.then(() => useTradeStore.getState().reconcileAutoMatches?.());
-          return;
-        }
-      } catch {
-        // ignore and try reconcile anyway
-      }
-      useTradeStore.getState().reconcileAutoMatches?.();
+    const apply = (msg) => {
+      if (!msg) return;
+      useTradeStore.getState().applyRemoteEvent?.(msg);
     };
 
     const handleStorageChange = (e) => {
-      // Rehydrate store when localStorage changes in another tab
-      if (e.key && e.key.includes('hni-trade-storage')) {
-        rehydrateAndReconcile();
+      if (e.key !== 'hni-trade-sync-v1' || !e.newValue) return;
+      try {
+        apply(JSON.parse(e.newValue));
+      } catch {
+        // ignore malformed sync marker
       }
     };
 
     let channel;
     try {
       channel = new BroadcastChannel('hni-trade-sync');
-      channel.onmessage = (event) => {
-        if (event?.data?.type) {
-          rehydrateAndReconcile();
-        }
-      };
+      channel.onmessage = (event) => apply(event?.data);
     } catch {
       channel = null;
     }
 
     window.addEventListener('storage', handleStorageChange);
+
+    // Ask other open tabs for a snapshot so a newly-opened tab converges quickly.
+    // (Works best-effort; no guarantee a peer exists.)
+    setTimeout(() => {
+      try {
+        useTradeStore.getState().broadcastSync?.('state_request', {});
+      } catch {
+        // ignore
+      }
+    }, 50);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       if (channel) channel.close();
@@ -57,10 +57,10 @@ function App() {
   }, []);
 
   const tabs = [
-    { id: 'terminal', name: '交易终端', icon: <Target size={18} />, roles: ['BUYER', 'SELLER', 'MM', 'ADMIN'] },
-    { id: 'portfolio', name: '我的资产', icon: <Briefcase size={18} />, roles: ['BUYER', 'SELLER', 'MM'] },
-    { id: 'matching', name: '人工撮合', icon: <Gavel size={18} />, roles: ['ADMIN'] },
-    { id: 'settings', name: '后台配置', icon: <Settings size={18} />, roles: ['ADMIN'] },
+    { id: 'terminal', name: 'äº¤æ˜“ç»ˆç«¯', icon: <Target size={18} />, roles: ['BUYER', 'SELLER', 'MM', 'ADMIN'] },
+    { id: 'portfolio', name: 'æˆ‘çš„èµ„äº§', icon: <Briefcase size={18} />, roles: ['BUYER', 'SELLER', 'MM', 'ADMIN'] },
+    { id: 'matching', name: 'äººå·¥æ’®åˆ', icon: <Gavel size={18} />, roles: ['ADMIN'] },
+    { id: 'settings', name: 'åŽå°é…ç½®', icon: <Settings size={18} />, roles: ['ADMIN'] },
   ];
 
   const filteredTabs = tabs.filter(tab => tab.roles.includes(currentUserRole));
@@ -111,8 +111,7 @@ function App() {
               <div className="animate-in slide-in-from-bottom-4 duration-500">
                 <OrderManagement />
               </div>
-            )}
-
+            )}\r\n
             {activeTab === 'matching' && currentUserRole === 'ADMIN' && (
               <div className="animate-in zoom-in-95 duration-500">
                 <MatchingWorkbench />
@@ -123,22 +122,22 @@ function App() {
               <div className="flex flex-col items-center justify-center h-[60vh] text-center gap-4">
                 <div className="p-6 bg-trade-card rounded-2xl border border-trade-border">
                   <Settings size={48} className="text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold">系统配置后台</h3>
+                  <h3 className="text-lg font-bold">ç³»ç»Ÿé…ç½®åŽå°</h3>
                   <p className="text-sm text-gray-500 max-w-xs mx-auto mt-2">
-                    此处可动态配置交易品种、手续费率及清算规则。当前版本中属性模板已预设。
+                    æ­¤å¤„å¯åŠ¨æ€é…ç½®äº¤æ˜“å“ç§ã€æ‰‹ç»­è´¹çŽ‡åŠæ¸…ç®—è§„åˆ™ã€‚å½“å‰ç‰ˆæœ¬ä¸­å±žæ€§æ¨¡æ¿å·²é¢„è®¾ã€‚
                   </p>
 
                   <div className="mt-6 pt-6 border-t border-trade-border">
                     <button
                       onClick={() => {
-                        if (confirm('⚠️ 确定要重置所有系统数据吗？这将清除所有订单、成交和通知记录。')) {
+                        if (confirm('âš ï¸ ç¡®å®šè¦é‡ç½®æ‰€æœ‰ç³»ç»Ÿæ•°æ®å—ï¼Ÿè¿™å°†æ¸…é™¤æ‰€æœ‰è®¢å•ã€æˆäº¤å’Œé€šçŸ¥è®°å½•ã€‚')) {
                           resetSystem();
-                          alert('系统已重置');
+                          alert('ç³»ç»Ÿå·²é‡ç½®');
                         }
                       }}
                       className="px-4 py-2 bg-red-900/30 text-red-400 border border-red-900/50 rounded-lg text-xs font-bold hover:bg-red-900/50 transition-all"
                     >
-                      重置系统数据 (Reset Demo Data)
+                      é‡ç½®ç³»ç»Ÿæ•°æ® (Reset Demo Data)
                     </button>
                   </div>
                 </div>
@@ -152,12 +151,12 @@ function App() {
       {/* Footer / Status Bar */}
       <footer className="h-8 bg-trade-card border-t border-trade-border flex items-center justify-between px-6 text-[10px] text-gray-500 font-medium">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-green rounded-full"></span> 撮合引擎: 在线</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-green rounded-full"></span> 行情推送: 正常</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-blue rounded-full"></span> Vercel Cloud: 已连接</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-green rounded-full"></span> æ’®åˆå¼•æ“Ž: åœ¨çº¿</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-green rounded-full"></span> è¡Œæƒ…æŽ¨é€: æ­£å¸¸</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-trade-blue rounded-full"></span> Vercel Cloud: å·²è¿žæŽ¥</span>
         </div>
         <div className="tracking-widest uppercase">
-          海南国际清算所 &copy; 2026
+          æµ·å—å›½é™…æ¸…ç®—æ‰€ &copy; 2026
         </div>
       </footer>
     </div>
@@ -165,3 +164,4 @@ function App() {
 }
 
 export default App;
+

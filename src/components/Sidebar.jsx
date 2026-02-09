@@ -1,10 +1,10 @@
 import React from 'react';
 import { TRADING_VARIETIES } from '../data/varieties';
-import useTradeStore from '../store/useTradeStore';
+import useViewStore from '../store/useViewStore';
 import { Box, Layers, Container, ChevronRight } from 'lucide-react';
 
 const Sidebar = () => {
-    const { selectedVariety, setSelectedVariety } = useTradeStore();
+    const { selectedVariety, setSelectedVariety } = useViewStore();
 
     const getIcon = (id) => {
         switch (id) {

@@ -1,28 +1,66 @@
 import React, { useState, useMemo } from 'react';
-import useTradeStore from '../../store/useTradeStore';
+import useTradeStore, { USER_ROLE_RATINGS } from '../../store/useTradeStore';
+import { TRADING_VARIETIES } from '../../data/varieties';
 import { Gavel, CheckCircle2, AlertCircle } from 'lucide-react';
 
+const getVarietyName = (typeId) => {
+    for (const cat of TRADING_VARIETIES) {
+        const type = cat.subTypes.find(t => t.id === typeId);
+        if (type) return type.name;
+    }
+    return typeId;
+};
+
+const isWildcardValue = (v) => v === undefined || v === null || v === '' || v === '任意' || v === 'ä»»æ„';
+
+const buildAttrRows = (bidAttrs = {}, askAttrs = {}) => {
+    const keys = new Set([...Object.keys(bidAttrs), ...Object.keys(askAttrs)]);
+    return [...keys].sort().map((k) => {
+        const bv = bidAttrs[k];
+        const av = askAttrs[k];
+        const wildcard = isWildcardValue(bv) || isWildcardValue(av);
+        const match = wildcard || bv === av;
+        return { key: k, bid: bv ?? '-', ask: av ?? '-', match, wildcard };
+    });
+};
+
 const MatchingWorkbench = () => {
-    const { orders, executeTrade, selectedVariety } = useTradeStore();
-    const [selectedBid, setSelectedBid] = useState(null);
-    const [selectedAsk, setSelectedAsk] = useState(null);
+    const { orders, executeTrade } = useTradeStore();
+    const [filterTypeId, setFilterTypeId] = useState('ALL');
+    const [selectedBidId, setSelectedBidId] = useState(null);
+    const [selectedAskId, setSelectedAskId] = useState(null);
     const [manualPrice, setManualPrice] = useState('');
     const [manualQty, setManualQty] = useState('');
     const [manualNotes, setManualNotes] = useState('');
-    const varietyTypeId = selectedVariety?.typeId;
+
+    const effectiveTypeId = filterTypeId === 'ALL' ? null : filterTypeId;
+
+    const selectedBid = useMemo(
+        () => orders.find(o => o.id === selectedBidId) || null,
+        [orders, selectedBidId]
+    );
+
+    const selectedAsk = useMemo(
+        () => orders.find(o => o.id === selectedAskId) || null,
+        [orders, selectedAskId]
+    );
 
     const openBids = useMemo(() =>
-        varietyTypeId
-            ? orders.filter(o => o.status === 'OPEN' && o.type === 'BID' && o.typeId === varietyTypeId)
-            : [],
-        [orders, varietyTypeId]
+        orders.filter(o =>
+            o.status === 'OPEN' &&
+            o.type === 'BID' &&
+            (!effectiveTypeId ? true : o.typeId === effectiveTypeId)
+        ),
+        [orders, effectiveTypeId]
     );
 
     const openAsks = useMemo(() =>
-        varietyTypeId
-            ? orders.filter(o => o.status === 'OPEN' && o.type === 'ASK' && o.typeId === varietyTypeId)
-            : [],
-        [orders, varietyTypeId]
+        orders.filter(o =>
+            o.status === 'OPEN' &&
+            o.type === 'ASK' &&
+            (!effectiveTypeId ? true : o.typeId === effectiveTypeId)
+        ),
+        [orders, effectiveTypeId]
     );
 
     // Update defaults when selection changes
@@ -30,9 +68,43 @@ const MatchingWorkbench = () => {
         if (selectedBid && selectedAsk) {
             setManualPrice((selectedBid.price + selectedAsk.price) / 2);
             setManualQty(Math.min(selectedBid.quantity, selectedAsk.quantity));
-            setManualNotes('协议成交');
+            setManualNotes('协议平仓');
         }
     }, [selectedBid, selectedAsk]);
+
+    const suggestion = useMemo(() => {
+        const pickBestAskForBid = (bid) => {
+            if (!bid) return null;
+            return openAsks
+                .filter(a => a.typeId === bid.typeId)
+                .sort((a, b) => a.price - b.price || a.timestamp - b.timestamp)[0] || null;
+        };
+
+        const pickBestBidForAsk = (ask) => {
+            if (!ask) return null;
+            return openBids
+                .filter(b => b.typeId === ask.typeId)
+                .sort((a, b) => b.price - a.price || a.timestamp - b.timestamp)[0] || null;
+        };
+
+        let bid = selectedBid;
+        let ask = selectedAsk;
+        if (bid && !ask) ask = pickBestAskForBid(bid);
+        if (ask && !bid) bid = pickBestBidForAsk(ask);
+
+        if (!bid || !ask) return { bid, ask, suggestedPrice: null, suggestedQty: null, attrRows: [] };
+
+        const suggestedPrice = Math.round((bid.price + ask.price) / 2);
+        const suggestedQty = Math.min(bid.quantity, ask.quantity);
+        const attrRows = buildAttrRows(bid.attributes || {}, ask.attributes || {});
+        return { bid, ask, suggestedPrice, suggestedQty, attrRows };
+    }, [selectedBid, selectedAsk, openBids, openAsks]);
+
+    // If a selected order gets filled/cancelled in another tab, clear it.
+    React.useEffect(() => {
+        if (selectedBidId && (!selectedBid || selectedBid.status !== 'OPEN')) setSelectedBidId(null);
+        if (selectedAskId && (!selectedAsk || selectedAsk.status !== 'OPEN')) setSelectedAskId(null);
+    }, [selectedBidId, selectedAskId, selectedBid, selectedAsk]);
 
     const handleMatch = () => {
         if (selectedBid && selectedAsk) {
@@ -41,8 +113,8 @@ const MatchingWorkbench = () => {
             const maxQty = Math.min(selectedBid.quantity, selectedAsk.quantity);
             const finalQty = Number.isFinite(qtyValue) && qtyValue > 0 ? Math.min(qtyValue, maxQty) : maxQty;
             executeTrade(selectedBid, selectedAsk, true, Number.isFinite(priceValue) ? priceValue : null, finalQty, manualNotes);
-            setSelectedBid(null);
-            setSelectedAsk(null);
+            setSelectedBidId(null);
+            setSelectedAskId(null);
             setManualPrice('');
             setManualQty('');
             setManualNotes('');
@@ -62,6 +134,23 @@ const MatchingWorkbench = () => {
                     </div>
                 </div>
 
+                {/* Filter (demo-friendly) */}
+                <div className="mb-6 flex items-center justify-between gap-4">
+                    <div className="text-xs text-gray-500 font-bold uppercase tracking-widest">
+                        Filter
+                    </div>
+                    <select
+                        value={filterTypeId}
+                        onChange={(e) => setFilterTypeId(e.target.value)}
+                        className="bg-trade-bg border border-trade-border rounded px-3 py-2 text-xs focus:border-trade-blue outline-none transition-colors"
+                    >
+                        <option value="ALL">All Varieties</option>
+                        {TRADING_VARIETIES.flatMap(c => c.subTypes).map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-8">
                     {/* Bids Pool */}
                     <div className="flex flex-col gap-3">
@@ -70,7 +159,7 @@ const MatchingWorkbench = () => {
                             {openBids.map(bid => (
                                 <div
                                     key={bid.id}
-                                    onClick={() => setSelectedBid(bid)}
+                                    onClick={() => setSelectedBidId(bid.id)}
                                     className={`p-4 border-b border-trade-border cursor-pointer transition-all ${selectedBid?.id === bid.id ? 'bg-trade-green/10 border-trade-green' : 'hover:bg-white/5'
                                         }`}
                                 >
@@ -78,6 +167,11 @@ const MatchingWorkbench = () => {
                                         <span className="text-sm font-bold text-gray-200">{bid.price} 元</span>
                                         <span className="text-xs font-mono text-gray-500">{bid.quantity} 吨</span>
                                     </div>
+                                    {filterTypeId === 'ALL' && (
+                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                                            {getVarietyName(bid.typeId)}
+                                        </div>
+                                    )}
                                     <div className="flex gap-2 flex-wrap">
                                         <span className="text-[10px] bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 font-bold">{bid.roleName || bid.role || '买方'}</span>
                                         {Object.entries(bid.attributes || {}).map(([k, v]) => v && (
@@ -99,7 +193,7 @@ const MatchingWorkbench = () => {
                             {openAsks.map(ask => (
                                 <div
                                     key={ask.id}
-                                    onClick={() => setSelectedAsk(ask)}
+                                    onClick={() => setSelectedAskId(ask.id)}
                                     className={`p-4 border-b border-trade-border cursor-pointer transition-all ${selectedAsk?.id === ask.id ? 'bg-trade-red/10 border-trade-red' : 'hover:bg-white/5'
                                         }`}
                                 >
@@ -107,6 +201,11 @@ const MatchingWorkbench = () => {
                                         <span className="text-sm font-bold text-gray-200">{ask.price} 元</span>
                                         <span className="text-xs font-mono text-gray-500">{ask.quantity} 吨</span>
                                     </div>
+                                    {filterTypeId === 'ALL' && (
+                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                                            {getVarietyName(ask.typeId)}
+                                        </div>
+                                    )}
                                     <div className="flex gap-2 flex-wrap">
                                         <span className="text-[10px] bg-red-500/10 px-1.5 py-0.5 rounded text-red-400 font-bold">{ask.roleName || ask.role || '卖方'}</span>
                                         {Object.entries(ask.attributes || {}).map(([k, v]) => v && (
@@ -121,6 +220,133 @@ const MatchingWorkbench = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Suggestion / Compare (demo helper) */}
+                {(selectedBid || selectedAsk) && (
+                    <div className="mt-6 p-5 rounded-xl border border-trade-border bg-gradient-to-br from-white/5 to-trade-bg">
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <div className="text-xs font-bold uppercase tracking-widest text-gray-300">撮合建议</div>
+                                    <div className="text-[11px] text-gray-500 mt-1">
+                                        选中一边订单后，系统会推荐同品种的最优对手方，并对比关键属性(演示用途)。
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {!selectedBid && suggestion?.bid && (
+                                        <button
+                                            onClick={() => setSelectedBidId(suggestion.bid.id)}
+                                            className="px-3 py-2 rounded-lg text-xs font-bold bg-trade-green/15 text-trade-green hover:bg-trade-green/25 border border-trade-green/30 transition-colors"
+                                        >
+                                            选中推荐买单
+                                        </button>
+                                    )}
+                                    {!selectedAsk && suggestion?.ask && (
+                                        <button
+                                            onClick={() => setSelectedAskId(suggestion.ask.id)}
+                                            className="px-3 py-2 rounded-lg text-xs font-bold bg-trade-red/15 text-trade-red hover:bg-trade-red/25 border border-trade-red/30 transition-colors"
+                                        >
+                                            选中推荐卖单
+                                        </button>
+                                    )}
+                                    {suggestion?.suggestedPrice && suggestion?.suggestedQty && (
+                                        <button
+                                            onClick={() => {
+                                                setManualPrice(String(suggestion.suggestedPrice));
+                                                setManualQty(String(suggestion.suggestedQty));
+                                                setManualNotes((n) => (n && String(n).trim() ? n : '协议平仓'));
+                                            }}
+                                            className="px-3 py-2 rounded-lg text-xs font-bold bg-trade-blue text-white hover:bg-trade-blue/90 transition-colors"
+                                        >
+                                            一键填入
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {suggestion?.bid && suggestion?.ask ? (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl border border-trade-border bg-trade-bg/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest text-trade-green">BID</div>
+                                                <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-gray-200">
+                                                    {USER_ROLE_RATINGS[suggestion.bid.role] || suggestion.bid.rating || '-'}
+                                                </div>
+                                            </div>
+                                            <div className="mt-1 text-sm font-bold text-gray-100">
+                                                {suggestion.bid.roleName || suggestion.bid.role || '买方'}
+                                            </div>
+                                            <div className="mt-2 text-xs text-gray-400 font-mono">
+                                                {suggestion.bid.price} 元 / {suggestion.bid.quantity} 吨
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 rounded-xl border border-trade-border bg-trade-bg/40">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="text-[10px] font-bold uppercase tracking-widest text-trade-red">ASK</div>
+                                                <div className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-gray-200">
+                                                    {USER_ROLE_RATINGS[suggestion.ask.role] || suggestion.ask.rating || '-'}
+                                                </div>
+                                            </div>
+                                            <div className="mt-1 text-sm font-bold text-gray-100">
+                                                {suggestion.ask.roleName || suggestion.ask.role || '卖方'}
+                                            </div>
+                                            <div className="mt-2 text-xs text-gray-400 font-mono">
+                                                {suggestion.ask.price} 元 / {suggestion.ask.quantity} 吨
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="p-3 rounded-lg border border-trade-border bg-trade-bg/30">
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase">建议成交均价</div>
+                                            <div className="text-sm font-bold text-white mt-1">{suggestion.suggestedPrice} 元</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg border border-trade-border bg-trade-bg/30">
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase">建议成交数量</div>
+                                            <div className="text-sm font-bold text-white mt-1">{suggestion.suggestedQty} 吨</div>
+                                        </div>
+                                        <div className="p-3 rounded-lg border border-trade-border bg-trade-bg/30">
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase">属性一致性</div>
+                                            <div className="text-sm font-bold text-white mt-1">
+                                                {suggestion.attrRows.filter(r => r.match).length}/{suggestion.attrRows.length}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {suggestion.attrRows.length > 0 && (
+                                        <div className="overflow-hidden rounded-xl border border-trade-border">
+                                            <div className="grid grid-cols-4 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                                <div>属性</div>
+                                                <div>买单</div>
+                                                <div>卖单</div>
+                                                <div>结果</div>
+                                            </div>
+                                            {suggestion.attrRows.map((r) => (
+                                                <div
+                                                    key={r.key}
+                                                    className={`grid grid-cols-4 px-3 py-2 text-xs border-t border-trade-border ${r.match ? 'bg-trade-green/5' : 'bg-trade-red/5'}`}
+                                                >
+                                                    <div className="text-gray-400">{r.key}</div>
+                                                    <div className="text-gray-200">{String(r.bid)}</div>
+                                                    <div className="text-gray-200">{String(r.ask)}</div>
+                                                    <div className={`text-[10px] font-bold uppercase ${r.match ? 'text-trade-green' : 'text-trade-red'}`}>
+                                                        {r.wildcard ? 'WILDCARD' : (r.match ? 'MATCH' : 'MISMATCH')}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-xs text-gray-500 italic">
+                                    请选择买单或卖单以生成推荐对手方。
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Action Area */}
                 <div className="mt-8 pt-6 border-t border-trade-border">

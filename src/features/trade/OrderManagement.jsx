@@ -211,6 +211,10 @@ const OrderManagement = () => {
                                     <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">存管仓库</div>
                                     <div className="p-3 text-xs col-span-3">海南洋浦保税港区 A12 监管仓</div>
                                 </div>
+                                <div className="grid grid-cols-4 border-b border-gray-300">
+                                    <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">审计备注</div>
+                                    <div className="p-3 text-xs col-span-3">{selectedTradeForReceipt.notes || '-'}</div>
+                                </div>
                                 <div className="grid grid-cols-4">
                                     <div className="bg-gray-50 p-3 font-bold border-r border-gray-300 text-xs">清算状态</div>
                                     <div className="p-3 text-xs text-green-600 font-bold border-r border-gray-300 flex items-center gap-1">

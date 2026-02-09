@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import useTradeStore from '../../store/useTradeStore';
+import useViewStore from '../../store/useViewStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
 const FUTURES_REFERENCE = 3820;
 
 const MarketDepth = () => {
-    const { orders, selectedVariety, trades } = useTradeStore();
+    const { orders, trades } = useTradeStore();
+    const { selectedVariety } = useViewStore();
 
     const varietyInfo = useMemo(() => {
         const cat = TRADING_VARIETIES.find(c => c.id === selectedVariety.categoryId);
@@ -134,7 +136,7 @@ const MarketDepth = () => {
                 <div className="bg-trade-bg/50 px-4 py-2 border-y border-trade-border flex justify-between items-center">
                     <span className="text-xs text-gray-500 font-bold uppercase">价差</span>
                     <span className="text-sm font-mono text-trade-blue font-bold">
-                        {asks[0] && bids[0] ? (asks[0].price - bids[0].price).toFixed(2) : '--'}
+                        {bestBid && bestAsk ? (bestAsk.price - bestBid.price).toFixed(2) : '--'}
                     </span>
                     <div className="flex gap-1">
                         <div className="w-1 h-1 bg-trade-blue rounded-full"></div>

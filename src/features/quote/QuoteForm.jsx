@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import useTradeStore, { useUserStore } from '../../store/useTradeStore';
+import useViewStore from '../../store/useViewStore';
 import { TRADING_VARIETIES } from '../../data/varieties';
 import { Send, Plus, Minus, Info, ShieldCheck, Activity, Scale, CreditCard } from 'lucide-react';
 
@@ -7,7 +8,8 @@ const FUTURES_REFERENCE = 3820; // Mock current futures price
 
 const QuoteForm = () => {
     const { currentUserRole } = useUserStore();
-    const { selectedVariety, addOrder, orders } = useTradeStore();
+    const { selectedVariety } = useViewStore();
+    const { addOrder, orders } = useTradeStore();
     const [type, setType] = useState('BID'); // BID or ASK
     const [price, setPrice] = useState(3840);
     const [isBasis, setIsBasis] = useState(false); // New: Basis vs Fixed
@@ -56,6 +58,17 @@ const QuoteForm = () => {
     const totalValue = finalPrice * quantity;
     const estimatedMargin = totalValue * 0.1; // 10% mock margin
 
+    // Demo: market maker dual-quote margin effect (gross vs net).
+    const mmSpread = 5;
+    const mmBidPrice = finalPrice - mmSpread;
+    const mmAskPrice = finalPrice + mmSpread;
+    const mmBidValue = mmBidPrice * quantity;
+    const mmAskValue = mmAskPrice * quantity;
+    const mmMarginBid = mmBidValue * 0.1;
+    const mmMarginAsk = mmAskValue * 0.1;
+    const mmMarginGross = mmMarginBid + mmMarginAsk;
+    const mmMarginNet = Math.max(mmMarginBid, mmMarginAsk);
+
     const handleSubmit = (e) => {
         if (e) e.preventDefault();
         setIsSubmitting(true);
@@ -99,7 +112,7 @@ const QuoteForm = () => {
         <div className="trade-panel p-6 flex flex-col gap-5 relative overflow-hidden">
             <div className="flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2">
-                    {currentUserRole === 'MM' ? '快速双边报价' : '发布报价'}
+                    {currentUserRole === 'MM' ? 'å¿«é€ŸåŒè¾¹æŠ¥ä»·' : 'å‘å¸ƒæŠ¥ä»·'}
                     <Info size={14} className="text-gray-500 cursor-help" />
                 </h3>
                 {currentUserRole !== 'MM' && (
@@ -108,13 +121,13 @@ const QuoteForm = () => {
                             onClick={() => setType('BID')}
                             className={`px-4 py-1 text-xs font-bold rounded transition-all ${type === 'BID' ? 'bg-trade-green text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}
                         >
-                            买入
+                            ä¹°å…¥
                         </button>
                         <button
                             onClick={() => setType('ASK')}
                             className={`px-4 py-1 text-xs font-bold rounded transition-all ${type === 'ASK' ? 'bg-trade-red text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}
                         >
-                            卖出
+                            å–å‡º
                         </button>
                     </div>
                 )}
@@ -126,13 +139,13 @@ const QuoteForm = () => {
                     onClick={() => setIsBasis(false)}
                     className={`flex-1 py-1.5 text-[11px] font-bold rounded transition-all ${!isBasis ? 'bg-trade-blue text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    普通价报价
+                    æ™®é€šä»·æŠ¥ä»·
                 </button>
                 <button
                     onClick={() => setIsBasis(true)}
                     className={`flex-1 py-1.5 text-[11px] font-bold rounded transition-all ${isBasis ? 'bg-trade-blue text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
                 >
-                    基差报价 (PRO)
+                    åŸºå·®æŠ¥ä»· (PRO)
                 </button>
             </div>
 
@@ -161,11 +174,11 @@ const QuoteForm = () => {
                     {isBasis ? (
                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase tracking-wider px-1">
-                                <span className="flex items-center gap-1"><Activity size={10} className="text-trade-blue" /> 期货参考价 (RB2505)</span>
-                                <span className="font-mono text-gray-300 font-black">¥{FUTURES_REFERENCE}</span>
+                                <span className="flex items-center gap-1"><Activity size={10} className="text-trade-blue" /> æœŸè´§å‚è€ƒä»· (RB2505)</span>
+                                <span className="font-mono text-gray-300 font-black">Â¥{FUTURES_REFERENCE}</span>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-gray-400 flex items-center gap-1 px-1">升贴水 (点号)</label>
+                                <label className="text-xs font-bold text-gray-400 flex items-center gap-1 px-1">å‡è´´æ°´ (ç‚¹å·)</label>
                                 <div className="flex items-center gap-2">
                                     <button type="button" onClick={() => setBasis(b => b - 5)} className="w-10 h-10 rounded bg-trade-bg border border-trade-border hover:bg-white/5 flex items-center justify-center text-gray-400 transition-colors"><Minus size={16} /></button>
                                     <input
@@ -178,13 +191,13 @@ const QuoteForm = () => {
                                 </div>
                             </div>
                             <div className="flex items-center justify-between bg-trade-blue/10 p-2.5 rounded-lg border border-trade-blue/30 text-[11px] animate-in fade-in slide-in-from-bottom-1 duration-500 shadow-[0_0_15px_-3px_rgba(45,108,223,0.3)]">
-                                <span className="text-gray-400 font-bold uppercase tracking-tighter">折算实时报价:</span>
-                                <span className="text-trade-blue font-black font-mono text-sm underline decoration-double decoration-trade-blue/30 underline-offset-4">¥{finalPrice}</span>
+                                <span className="text-gray-400 font-bold uppercase tracking-tighter">æŠ˜ç®—å®žæ—¶æŠ¥ä»·:</span>
+                                <span className="text-trade-blue font-black font-mono text-sm underline decoration-double decoration-trade-blue/30 underline-offset-4">Â¥{finalPrice}</span>
                             </div>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] text-gray-500 font-bold uppercase">委托价格 (¥/{varietyInfo?.unit})</label>
+                            <label className="text-[11px] text-gray-500 font-bold uppercase">å§”æ‰˜ä»·æ ¼ (Â¥/{varietyInfo?.unit})</label>
                             <div className="flex items-center group">
                                 <button type="button" onClick={() => setPrice(p => p - 5)} className="bg-trade-bg border border-trade-border border-r-0 rounded-l p-2 h-10 hover:text-trade-blue transition-colors"><Minus size={14} /></button>
                                 <input
@@ -199,7 +212,7 @@ const QuoteForm = () => {
                     )}
 
                     <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] text-gray-500 font-bold uppercase">委托数量 (吨)</label>
+                        <label className="text-[11px] text-gray-500 font-bold uppercase">å§”æ‰˜æ•°é‡ (å¨)</label>
                         <div className="flex items-center group">
                             <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 10))} className="bg-trade-bg border border-trade-border border-r-0 rounded-l p-2 h-10 hover:text-trade-blue transition-colors"><Minus size={14} /></button>
                             <input
@@ -216,19 +229,53 @@ const QuoteForm = () => {
                 {/* Pre-trade Risk Analysis (Advanced Feature) */}
                 <div className="bg-trade-card/30 rounded-lg p-3 border border-dashed border-trade-border/50 space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                        <span className="flex items-center gap-1"><Scale size={10} className="text-trade-yellow" /> 结算风控预估 (Risk Analysis)</span>
-                        <span className="text-trade-blue font-black underline decoration-dotted underline-offset-2">保证金率: 10%</span>
+                        <span className="flex items-center gap-1"><Scale size={10} className="text-trade-yellow" /> ç»“ç®—é£ŽæŽ§é¢„ä¼° (Risk Analysis)</span>
+                        <span className="text-trade-blue font-black underline decoration-dotted underline-offset-2">ä¿è¯é‡‘çŽ‡: 10%</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-0.5">
-                            <div className="text-[9px] text-gray-500 uppercase font-bold">合约总价值</div>
-                            <div className="text-xs font-mono text-gray-400">¥{(totalValue / 10000).toFixed(2)} 万</div>
+                    {currentUserRole === 'MM' ? (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-0.5">
+                                    <div className="text-[9px] text-gray-500 uppercase font-bold">双边合约总价值 (Gross)</div>
+                                    <div className="text-xs font-mono text-gray-400">¥{((mmBidValue + mmAskValue) / 10000).toFixed(2)} 万</div>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <div className="text-[9px] text-trade-yellow uppercase font-black tracking-widest">双边保证金 (Gross)</div>
+                                    <div className="text-xs font-mono text-trade-yellow font-bold">¥{(mmMarginGross / 10000).toFixed(2)} 万</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-0.5">
+                                    <div className="text-[9px] text-gray-500 uppercase font-bold">买单 @ ¥{mmBidPrice}</div>
+                                    <div className="text-xs font-mono text-gray-400">¥{(mmMarginBid / 10000).toFixed(2)} 万</div>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <div className="text-[9px] text-gray-500 uppercase font-bold">卖单 @ ¥{mmAskPrice}</div>
+                                    <div className="text-xs font-mono text-gray-400">¥{(mmMarginAsk / 10000).toFixed(2)} 万</div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between bg-trade-bg/50 border border-trade-border/40 rounded px-3 py-2 text-[10px]">
+                                <span className="text-gray-500 font-bold uppercase tracking-widest">Net (Demo)</span>
+                                <span className="font-mono text-gray-200 font-bold">¥{(mmMarginNet / 10000).toFixed(2)} 万</span>
+                            </div>
+                            <div className="text-[9px] text-gray-500 italic leading-relaxed">
+                                Demo规则：Gross = 买单 + 卖单累加；Net = max(买单, 卖单)（简化的净额占用展示）。
+                            </div>
                         </div>
-                        <div className="space-y-0.5">
-                            <div className="text-[9px] text-trade-yellow uppercase font-black tracking-widest">预估需划付保证金</div>
-                            <div className="text-xs font-mono text-trade-yellow font-bold">¥{(estimatedMargin / 10000).toFixed(2)} 万</div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-0.5">
+                                <div className="text-[9px] text-gray-500 uppercase font-bold">合约总价值</div>
+                                <div className="text-xs font-mono text-gray-400">¥{(totalValue / 10000).toFixed(2)} 万</div>
+                            </div>
+                            <div className="space-y-0.5">
+                                <div className="text-[9px] text-trade-yellow uppercase font-black tracking-widest">预估需划付保证金</div>
+                                <div className="text-xs font-mono text-trade-yellow font-bold">¥{(estimatedMargin / 10000).toFixed(2)} 万</div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Strategy Presets (Read-only) */}
@@ -239,27 +286,27 @@ const QuoteForm = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-[11px]">
                         <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
-                            <span className="text-gray-400">稳健买方: 买一 +5</span>
+                            <span className="text-gray-400">ç¨³å¥ä¹°æ–¹: ä¹°ä¸€ +5</span>
                             <span className="font-mono text-trade-green font-bold">
-                                {bestBid ? `¥${bestBid.price + 5}` : '--'}
+                                {bestBid ? `Â¥${bestBid.price + 5}` : '--'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
-                            <span className="text-gray-400">稳健卖方: 卖一 -5</span>
+                            <span className="text-gray-400">ç¨³å¥å–æ–¹: å–ä¸€ -5</span>
                             <span className="font-mono text-trade-red font-bold">
-                                {bestAsk ? `¥${bestAsk.price - 5}` : '--'}
+                                {bestAsk ? `Â¥${bestAsk.price - 5}` : '--'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
-                            <span className="text-gray-400">做市参考: 中间价</span>
+                            <span className="text-gray-400">åšå¸‚å‚è€ƒ: ä¸­é—´ä»·</span>
                             <span className="font-mono text-trade-blue font-bold">
-                                {bestBid && bestAsk ? `¥${((bestBid.price + bestAsk.price) / 2).toFixed(0)}` : '--'}
+                                {bestBid && bestAsk ? `Â¥${((bestBid.price + bestAsk.price) / 2).toFixed(0)}` : '--'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between bg-trade-bg/60 border border-trade-border/40 rounded px-2 py-1.5">
-                            <span className="text-gray-400">基差参考: 期货 + 基差</span>
+                            <span className="text-gray-400">åŸºå·®å‚è€ƒ: æœŸè´§ + åŸºå·®</span>
                             <span className="font-mono text-gray-200 font-bold">
-                                ¥{finalPrice}
+                                Â¥{finalPrice}
                             </span>
                         </div>
                     </div>
@@ -276,9 +323,9 @@ const QuoteForm = () => {
                         >
                             <div className="flex items-center gap-2 text-sm tracking-widest uppercase">
                                 <Activity size={18} />
-                                <span>发布双边快速报价</span>
+                                <span>å‘å¸ƒåŒè¾¹å¿«é€ŸæŠ¥ä»·</span>
                             </div>
-                            <span className="text-[9px] opacity-60 font-bold">BASE PRICE ¥{finalPrice} / SPREAD ±¥5</span>
+                            <span className="text-[9px] opacity-60 font-bold">BASE PRICE Â¥{finalPrice} / SPREAD Â±Â¥5</span>
                         </button>
                     ) : (
                         <button
@@ -291,7 +338,7 @@ const QuoteForm = () => {
                         >
                             <div className="flex items-center gap-2 text-sm tracking-widest font-black uppercase">
                                 <Send size={18} />
-                                <span>{type === 'BID' ? '确认发布买入报价' : '确认发布卖出报价'}</span>
+                                <span>{type === 'BID' ? 'ç¡®è®¤å‘å¸ƒä¹°å…¥æŠ¥ä»·' : 'ç¡®è®¤å‘å¸ƒå–å‡ºæŠ¥ä»·'}</span>
                             </div>
                             <span className="text-[9px] opacity-60 font-bold uppercase">Institutional Order Broadcast</span>
                         </button>
@@ -300,7 +347,7 @@ const QuoteForm = () => {
             </form>
 
             <div className="p-3 bg-trade-blue/5 border border-trade-border/30 rounded text-[10px] text-gray-500 leading-relaxed italic">
-                <span className="font-bold text-gray-400">NOTE:</span> 基差报价模式下，系统将自动锚定期货主力合约价格，助您锁定市场点差风险。
+                <span className="font-bold text-gray-400">NOTE:</span> åŸºå·®æŠ¥ä»·æ¨¡å¼ä¸‹ï¼Œç³»ç»Ÿå°†è‡ªåŠ¨é”šå®šæœŸè´§ä¸»åŠ›åˆçº¦ä»·æ ¼ï¼ŒåŠ©æ‚¨é”å®šå¸‚åœºç‚¹å·®é£Žé™©ã€‚
             </div>
 
             {/* Success Overlay */}
@@ -310,7 +357,7 @@ const QuoteForm = () => {
                         <ShieldCheck size={40} className="text-trade-green" />
                     </div>
                     <div className="text-center">
-                        <h3 className="text-xl font-black text-white tracking-widest uppercase">指令发布成功</h3>
+                        <h3 className="text-xl font-black text-white tracking-widest uppercase">æŒ‡ä»¤å‘å¸ƒæˆåŠŸ</h3>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.3em] mt-2 opacity-80">Order Verified & Broadcasted</p>
                     </div>
                 </div>
