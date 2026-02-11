@@ -11,7 +11,7 @@ const Navbar = () => {
             <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-trade-blue rounded flex items-center justify-center font-bold text-white">H</div>
                 <div className="text-xl font-bold tracking-tight bg-gradient-to-r from-trade-blue to-trade-green bg-clip-text text-transparent">
-                    æµ·å—å›½é™…æ¸…ç®—æ‰€
+                    海南国际清算所
                 </div>
                 <div className="ml-4 px-2 py-0.5 bg-trade-border/50 rounded text-[10px] text-gray-400 font-medium uppercase tracking-widest">
                     Trading Platform v1.0
@@ -27,7 +27,7 @@ const Navbar = () => {
                         )}
                     </button>
                     <div className="hidden md:block text-right">
-                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">å½“å‰ç³»ç»ŸçŠ¶æ€</div>
+                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">当前系统状态</div>
                         <div className="text-[11px] text-trade-green font-black flex items-center gap-1">
                             <span className="w-1 h-1 bg-trade-green rounded-full animate-pulse"></span>
                             CONNECTED
@@ -41,7 +41,7 @@ const Navbar = () => {
                     </div>
                     <div className="hidden sm:block">
                         <div className="text-xs font-black text-gray-200">
-                            {USER_ROLE_NAMES[currentUserRole] || 'æœªç™»å½•'}
+                            {USER_ROLE_NAMES[currentUserRole] || '未登录'}
                         </div>
                         <div className="text-[9px] text-trade-blue font-bold uppercase tracking-widest flex items-center gap-1">
                             <ShieldCheck size={10} />
@@ -56,7 +56,7 @@ const Navbar = () => {
                     <button
                         onClick={logout}
                         className="ml-2 p-2 text-gray-500 hover:text-trade-red transition-colors group"
-                        title="å®‰å…¨é€€å‡º"
+                        title="安全退出"
                     >
                         <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
                     </button>

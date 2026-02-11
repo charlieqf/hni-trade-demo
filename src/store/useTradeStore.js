@@ -9,10 +9,10 @@ export const USER_ROLES = {
 };
 
 export const USER_ROLE_NAMES = {
-    BUYER: 'ä¹°æ–¹ (æµ·æ±½å¤§å®—)',
-    SELLER: 'å–æ–¹ (æ²™é’¢è´¸æ˜“)',
-    MM: 'åšå¸‚å•† (å®æºåšå¸‚)',
-    ADMIN: 'ç³»ç»Ÿç®¡ç†å‘˜ (HNI)',
+    BUYER: '买方 (海汽大宗)',
+    SELLER: '卖方 (沙钢贸易)',
+    MM: '做市商 (宏源做市)',
+    ADMIN: '系统管理员 (HNI)',
 };
 
 // Demo-only: credit / entitlement badge shown in the navbar.
@@ -38,23 +38,16 @@ export const useUserStore = create(
     )
 );
 
-// Per-tab identity for sync events (prevents self-echo and aids dedupe)
-const getTabId = () => {
-    if (typeof window === 'undefined') return 'server';
-    try {
-        const key = 'hni-tab-id';
-        let id = sessionStorage.getItem(key);
-        if (!id) {
-            id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-            sessionStorage.setItem(key, id);
-        }
-        return id;
-    } catch {
-        return 'no-session';
+// Runtime-only tab identity for sync events.
+// Do not persist in sessionStorage: duplicated tabs can clone session state and end up sharing ids.
+const createTabId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
     }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.floor((typeof performance !== 'undefined' ? performance.now() : 0)).toString(36)}`;
 };
 
-const TAB_ID = getTabId();
+const TAB_ID = createTabId();
 const SEEN_EVENT_IDS = new Set();
 
 const ORDER_STATUS_RANK = { OPEN: 1, CANCELLED: 2, FILLED: 3 };
@@ -65,11 +58,96 @@ const preferStatus = (a, b) => {
     return ra >= rb ? normalizeStatus(a) : normalizeStatus(b);
 };
 
-const upsertById = (list, item, { prepend = false } = {}) => {
-    const idx = list.findIndex(x => x.id === item.id);
-    if (idx === -1) return prepend ? [item, ...list] : [...list, item];
-    const next = list.slice();
-    next[idx] = { ...next[idx], ...item };
+const LEGACY_TEXT_MAP = {
+    'å“ç‰Œ': '品牌',
+    'è§„æ ¼': '规格',
+    'æè´¨': '材质',
+    'æ²™é’¢': '沙钢',
+    'æ°¸é’¢': '永钢',
+    'ä»»æ„': '任意',
+    'Î¦18-25': 'Φ18-25',
+};
+
+const normalizeLegacyText = (value) => {
+    if (typeof value !== 'string') return value;
+    return LEGACY_TEXT_MAP[value] || value;
+};
+
+const isWildcardValue = (value) => value === '任意' || value === 'ä»»æ„';
+
+const normalizeLegacyAttributes = (attributes) => {
+    if (!attributes || typeof attributes !== 'object') return {};
+    return Object.entries(attributes).reduce((acc, [key, value]) => {
+        acc[normalizeLegacyText(key)] = normalizeLegacyText(value);
+        return acc;
+    }, {});
+};
+
+const normalizeLegacyOrder = (order) => {
+    if (!order || typeof order !== 'object') return order;
+    return {
+        ...order,
+        attributes: normalizeLegacyAttributes(order.attributes),
+    };
+};
+
+const normalizePersistedState = (state) => {
+    if (!state || typeof state !== 'object') return state;
+    return {
+        ...state,
+        orders: Array.isArray(state.orders) ? state.orders.map(normalizeLegacyOrder) : [],
+        trades: Array.isArray(state.trades)
+            ? state.trades.map((trade) => ({
+                ...trade,
+                notes: normalizeLegacyText(trade?.notes),
+            }))
+            : [],
+    };
+};
+
+const toFiniteNumber = (value) => (Number.isFinite(value) ? value : null);
+
+const mergeOrderState = (currentOrder, incomingOrder) => {
+    const incoming = normalizeLegacyOrder(incomingOrder);
+    const mergedStatus = preferStatus(incoming.status, currentOrder.status);
+    const currentQty = toFiniteNumber(currentOrder.quantity);
+    const incomingQty = toFiniteNumber(incoming.quantity);
+
+    let mergedQty = currentQty ?? incomingQty ?? 0;
+    if (mergedStatus === 'FILLED') {
+        mergedQty = 0;
+    } else if (mergedStatus === 'OPEN' && currentQty !== null && incomingQty !== null) {
+        mergedQty = Math.min(currentQty, incomingQty);
+    } else if (incomingQty !== null) {
+        mergedQty = incomingQty;
+    }
+
+    return {
+        ...currentOrder,
+        ...incoming,
+        attributes: {
+            ...(currentOrder.attributes || {}),
+            ...(incoming.attributes || {}),
+        },
+        status: mergedStatus,
+        quantity: mergedQty,
+    };
+};
+
+const isOrderPayload = (order) => Boolean(order?.id && order?.type && order?.typeId);
+
+const upsertOrder = (orders, order, { prepend = false } = {}) => {
+    const incoming = normalizeLegacyOrder(order);
+    if (!incoming?.id) return orders;
+
+    const idx = orders.findIndex((o) => o.id === incoming.id);
+    if (idx === -1) {
+        if (!isOrderPayload(incoming)) return orders;
+        return prepend ? [incoming, ...orders] : [...orders, incoming];
+    }
+
+    const next = orders.slice();
+    next[idx] = mergeOrderState(next[idx], incoming);
     return next;
 };
 
@@ -82,8 +160,6 @@ const upsertTrade = (trades, trade) => {
     return next;
 };
 
-const hasOrderId = (orders, id) => orders.some(o => o.id === id);
-
 const useTradeStore = create(
     persist(
         (set, get) => ({
@@ -91,13 +167,13 @@ const useTradeStore = create(
 
             // Orders: { id, role, roleName, type, price, quantity, varietyId, attributes, timestamp, status }
             orders: [
-                { id: '1', role: 'SELLER', type: 'ASK', price: 3850, quantity: 100, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'æ²™é’¢', 'è§„æ ¼': 'Î¦18-25', 'æè´¨': 'HRB400' }, timestamp: Date.now() - 100000, status: 'OPEN' },
-                { id: '2', role: 'MM', type: 'ASK', price: 3845, quantity: 500, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'æ°¸é’¢', 'è§„æ ¼': 'Î¦18-25', 'æè´¨': 'HRB400' }, timestamp: Date.now() - 50000, status: 'OPEN' },
-                { id: '3', role: 'BUYER', type: 'BID', price: 3830, quantity: 200, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'ä»»æ„', 'è§„æ ¼': 'Î¦18-25', 'æè´¨': 'HRB400' }, timestamp: Date.now() - 80000, status: 'OPEN' },
-                { id: '4', role: 'MM', type: 'BID', price: 3835, quantity: 400, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'æ°¸é’¢', 'è§„æ ¼': 'Î¦18-25', 'æè´¨': 'HRB400' }, timestamp: Date.now() - 40000, status: 'OPEN' },
+                { id: '1', role: 'SELLER', type: 'ASK', price: 3850, quantity: 100, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '沙钢', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 100000, status: 'OPEN' },
+                { id: '2', role: 'MM', type: 'ASK', price: 3845, quantity: 500, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '永钢', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 50000, status: 'OPEN' },
+                { id: '3', role: 'BUYER', type: 'BID', price: 3830, quantity: 200, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '任意', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 80000, status: 'OPEN' },
+                { id: '4', role: 'MM', type: 'BID', price: 3835, quantity: 400, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '永钢', '规格': 'Φ18-25', '材质': 'HRB400' }, timestamp: Date.now() - 40000, status: 'OPEN' },
                 // Mock orders for initial trade visibility
-                { id: 'mock-buy-1', role: 'BUYER', type: 'BID', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'æ²™é’¢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
-                { id: 'mock-sell-1', role: 'SELLER', type: 'ASK', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { 'å“ç‰Œ': 'æ²™é’¢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
+                { id: 'mock-buy-1', role: 'BUYER', type: 'BID', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '沙钢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
+                { id: 'mock-sell-1', role: 'SELLER', type: 'ASK', price: 3840, quantity: 0, categoryId: 'steel', typeId: 'rebar', attributes: { '品牌': '沙钢' }, timestamp: Date.now() - 250000, status: 'FILLED' },
             ],
 
             // Trades: { id, buyOrderId, sellOrderId, price, quantity, timestamp, matchedBy: 'AUTO' | 'MANUAL' }
@@ -126,13 +202,14 @@ const useTradeStore = create(
                 }
 
                 if (type === 'state_snapshot') {
-                    const orders = Array.isArray(payload?.orders) ? payload.orders : [];
+                    const orders = Array.isArray(payload?.orders)
+                        ? payload.orders.map(normalizeLegacyOrder)
+                        : [];
                     const trades = Array.isArray(payload?.trades) ? payload.trades : [];
                     set((state) => {
                         let nextOrders = state.orders;
                         for (const o of orders) {
-                            if (!o?.id) continue;
-                            if (!hasOrderId(nextOrders, o.id)) nextOrders = [o, ...nextOrders];
+                            nextOrders = upsertOrder(nextOrders, o, { prepend: true });
                         }
 
                         let nextTrades = state.trades;
@@ -143,15 +220,15 @@ const useTradeStore = create(
 
                         return { orders: nextOrders, trades: nextTrades };
                     });
+                    get().reconcileAutoMatches?.();
                     return;
                 }
 
                 if (type === 'order_added' && payload?.order) {
-                    const order = payload.order;
+                    const order = normalizeLegacyOrder(payload.order);
                     set((state) => {
                         if (!order?.id) return {};
-                        if (hasOrderId(state.orders, order.id)) return {};
-                        return { orders: [order, ...state.orders] };
+                        return { orders: upsertOrder(state.orders, order, { prepend: true }) };
                     });
 
                     // Ensure we can match even if the origin tab didn't have a fully up-to-date book yet.
@@ -167,13 +244,18 @@ const useTradeStore = create(
                 }
 
                 if (type === 'trade_executed' && payload?.trade) {
-                    const trade = payload.trade;
-                    const fullOrders = Array.isArray(payload.orders) ? payload.orders : [];
+                    const trade = {
+                        ...payload.trade,
+                        notes: normalizeLegacyText(payload?.trade?.notes),
+                    };
+                    const fullOrders = Array.isArray(payload.orders)
+                        ? payload.orders.map(normalizeLegacyOrder)
+                        : [];
                     const patches = Array.isArray(payload.orderPatches) ? payload.orderPatches : [];
                     set((state) => {
                         let nextOrders = state.orders;
                         for (const o of fullOrders) {
-                            if (o?.id && !hasOrderId(nextOrders, o.id)) nextOrders = [o, ...nextOrders];
+                            nextOrders = upsertOrder(nextOrders, o, { prepend: true });
                         }
                         for (const p of patches) {
                             if (!p?.id) continue;
@@ -197,12 +279,13 @@ const useTradeStore = create(
             },
 
             addOrder: (orderData) => {
+                const normalizedAttributes = normalizeLegacyAttributes(orderData.attributes || {});
                 const newOrder = {
                     id: Math.random().toString(36).substr(2, 9),
                     timestamp: Date.now(),
                     status: 'OPEN',
                     ...orderData,
-                    attributes: orderData.attributes || {}
+                    attributes: normalizedAttributes,
                 };
 
                 set((state) => ({ orders: [newOrder, ...state.orders] }));
@@ -231,11 +314,11 @@ const useTradeStore = create(
             checkAutoMatch: (newOrder) => {
                 const state = get();
                 const { orders } = state;
-                const incomingAttrs = newOrder.attributes || {};
+                const incomingAttrs = normalizeLegacyAttributes(newOrder.attributes || {});
                 const isAttrMatch = (candidate) => {
-                    const candidateAttrs = candidate.attributes || {};
+                    const candidateAttrs = normalizeLegacyAttributes(candidate.attributes || {});
                     return Object.entries(candidateAttrs).every(([key, value]) => {
-                        if (!incomingAttrs[key] || incomingAttrs[key] === 'ä»»æ„' || value === 'ä»»æ„') return true;
+                        if (!incomingAttrs[key] || isWildcardValue(incomingAttrs[key]) || isWildcardValue(value)) return true;
                         return incomingAttrs[key] === value;
                     });
                 };
@@ -284,12 +367,12 @@ const useTradeStore = create(
 
                     let matched = false;
                     for (const bid of openBids) {
-                        const bidAttrs = bid.attributes || {};
+                        const bidAttrs = normalizeLegacyAttributes(bid.attributes || {});
                         const matchingAsk = openAsks.find(ask => {
                             if (ask.typeId !== bid.typeId || ask.price > bid.price) return false;
-                            const askAttrs = ask.attributes || {};
+                            const askAttrs = normalizeLegacyAttributes(ask.attributes || {});
                             return Object.entries(askAttrs).every(([key, value]) => {
-                                if (!bidAttrs[key] || bidAttrs[key] === 'ä»»æ„' || value === 'ä»»æ„') return true;
+                                if (!bidAttrs[key] || isWildcardValue(bidAttrs[key]) || isWildcardValue(value)) return true;
                                 return bidAttrs[key] === value;
                             });
                         });
@@ -370,8 +453,8 @@ const useTradeStore = create(
                 // Trigger Notification
                 get().addNotification({
                     type: 'SUCCESS',
-                    title: isManual ? 'äººå·¥æ’®åˆæˆåŠŸ' : 'è‡ªåŠ¨æ’®åˆæˆåŠŸ',
-                    message: `${(buy.attributes || {})['å“ç‰Œ'] || 'æœªçŸ¥å“ç‰Œ'} / ${tradeQty}å¨ @ ï¿¥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
+                    title: isManual ? '人工撮合成功' : '自动撮合成功',
+                    message: `${(buy.attributes || {})['品牌'] || (buy.attributes || {})['å“ç‰Œ'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
                     role: isManual ? 'ADMIN' : 'SYSTEM' // Who initiated
                 });
 
@@ -383,8 +466,8 @@ const useTradeStore = create(
                     orders: [buy, sell],
                     notify: {
                         type: 'SUCCESS',
-                        title: isManual ? 'äººå·¥æ’®åˆæˆåŠŸ' : 'è‡ªåŠ¨æ’®åˆæˆåŠŸ',
-                        message: `${(buy.attributes || {})['å“ç‰Œ'] || 'æœªçŸ¥å“ç‰Œ'} / ${tradeQty}å¨ @ ï¿¥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
+                        title: isManual ? '人工撮合成功' : '自动撮合成功',
+                        message: `${(buy.attributes || {})['品牌'] || (buy.attributes || {})['å“ç‰Œ'] || '未知品牌'} / ${tradeQty}吨 @ ￥${tradePrice}${manualNotes ? ` (${manualNotes})` : ''}`,
                     },
                     orderPatches: [
                         { id: buy.id, quantity: buyNextQty, status: buyNextQty > 0 ? 'OPEN' : 'FILLED' },
@@ -428,6 +511,10 @@ const useTradeStore = create(
         {
             name: 'hni-trade-storage-v2',
             storage: createJSONStorage(() => localStorage),
+            merge: (persistedState, currentState) => ({
+                ...currentState,
+                ...normalizePersistedState(persistedState),
+            }),
             // IMPORTANT: Exclude currentUserRole from persistence so each tab can have a different role
             partialize: (state) => ({
                 orders: state.orders,
@@ -439,4 +526,3 @@ const useTradeStore = create(
 );
 
 export default useTradeStore;
-
