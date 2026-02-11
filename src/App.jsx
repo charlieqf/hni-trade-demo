@@ -43,6 +43,25 @@ function App() {
       }
     };
 
+    let lastPersistedSnapshot = null;
+
+    const pollPersistedState = () => {
+      try {
+        const currentSnapshot = localStorage.getItem('hni-trade-storage-v2');
+        if (currentSnapshot === lastPersistedSnapshot) return;
+        lastPersistedSnapshot = currentSnapshot;
+        rehydrateAndReconcile();
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      requestSnapshot();
+      rehydrateAndReconcile();
+    };
+
     const handleStorageChange = (e) => {
       if (!e.key) return;
 
@@ -56,6 +75,7 @@ function App() {
       }
 
       if (e.key === 'hni-trade-storage-v2') {
+        lastPersistedSnapshot = e.newValue ?? null;
         rehydrateAndReconcile();
       }
     };
@@ -70,6 +90,14 @@ function App() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', requestSnapshot);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    try {
+      lastPersistedSnapshot = localStorage.getItem('hni-trade-storage-v2');
+    } catch {
+      lastPersistedSnapshot = null;
+    }
+    const pollTimer = window.setInterval(pollPersistedState, 600);
 
     // Ask other open tabs for a snapshot so a newly-opened tab converges quickly.
     // (Works best-effort; no guarantee a peer exists.)
@@ -82,6 +110,8 @@ function App() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', requestSnapshot);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.clearInterval(pollTimer);
       if (channel) channel.close();
     };
   }, []);

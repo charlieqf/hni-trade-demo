@@ -50,6 +50,14 @@ const createTabId = () => {
 const TAB_ID = createTabId();
 const SEEN_EVENT_IDS = new Set();
 
+const rememberEventId = (eventId) => {
+    if (!eventId) return;
+    SEEN_EVENT_IDS.add(eventId);
+    if (SEEN_EVENT_IDS.size <= 4000) return;
+    const oldest = SEEN_EVENT_IDS.values().next();
+    if (!oldest.done) SEEN_EVENT_IDS.delete(oldest.value);
+};
+
 const ORDER_STATUS_RANK = { OPEN: 1, CANCELLED: 2, FILLED: 3 };
 const normalizeStatus = (s) => (s && ORDER_STATUS_RANK[s] ? s : 'OPEN');
 const preferStatus = (a, b) => {
@@ -185,9 +193,8 @@ const useTradeStore = create(
             // Demo scope: last-writer-wins with simple dedupe by eventId.
             applyRemoteEvent: (event) => {
                 if (!event || !event.type || !event.eventId) return;
-                if (event.sourceTabId && event.sourceTabId === TAB_ID) return;
                 if (SEEN_EVENT_IDS.has(event.eventId)) return;
-                SEEN_EVENT_IDS.add(event.eventId);
+                rememberEventId(event.eventId);
 
                 const { type, payload } = event;
 
@@ -489,6 +496,7 @@ const useTradeStore = create(
                         eventId: Math.random().toString(36).slice(2) + Date.now().toString(36),
                         sourceTabId: TAB_ID,
                     };
+                    rememberEventId(msg.eventId);
                     window.__hniTradeChannel.postMessage(msg);
 
                     // Fallback trigger for tabs relying on storage events.
