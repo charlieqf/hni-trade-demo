@@ -331,10 +331,11 @@ const useTradeStore = create(
                 };
 
                 // Price/Time/Attribute match logic
+                // Auto-match requires exact price parity; crossed prices are handled by admin manual matching.
                 if (newOrder.type === 'BID') {
                     const matchingAsk = orders
                         .filter(o => {
-                            if (o.status !== 'OPEN' || o.type !== 'ASK' || o.typeId !== newOrder.typeId || o.price > newOrder.price) return false;
+                            if (o.status !== 'OPEN' || o.type !== 'ASK' || o.typeId !== newOrder.typeId || o.price !== newOrder.price) return false;
 
                             // Check Attributes (Brand, Spec, Material, etc.)
                             return isAttrMatch(o);
@@ -347,7 +348,7 @@ const useTradeStore = create(
                 } else {
                     const matchingBid = orders
                         .filter(o => {
-                            if (o.status !== 'OPEN' || o.type !== 'BID' || o.typeId !== newOrder.typeId || o.price < newOrder.price) return false;
+                            if (o.status !== 'OPEN' || o.type !== 'BID' || o.typeId !== newOrder.typeId || o.price !== newOrder.price) return false;
 
                             // Check Attributes
                             return isAttrMatch(o);
@@ -376,7 +377,7 @@ const useTradeStore = create(
                     for (const bid of openBids) {
                         const bidAttrs = normalizeLegacyAttributes(bid.attributes || {});
                         const matchingAsk = openAsks.find(ask => {
-                            if (ask.typeId !== bid.typeId || ask.price > bid.price) return false;
+                            if (ask.typeId !== bid.typeId || ask.price !== bid.price) return false;
                             const askAttrs = normalizeLegacyAttributes(ask.attributes || {});
                             return Object.entries(askAttrs).every(([key, value]) => {
                                 if (!bidAttrs[key] || isWildcardValue(bidAttrs[key]) || isWildcardValue(value)) return true;
