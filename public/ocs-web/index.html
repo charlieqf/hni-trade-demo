@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>场外清算系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+        }
+
+        .menu-item {
+            transition: all 0.2s ease-in-out;
+            color: #a2b1c6;
+        }
+
+        .menu-item:hover {
+            color: #fff;
+            background-color: #172136;
+            padding-left: 28px;
+        }
+
+        .submenu-container {
+            transition: max-height 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .submenu-container.open {
+            max-height: 500px;
+        }
+
+        /* Optional custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #35425c;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen overflow-hidden flex bg-[#f0f2f5] text-[14px]">
+
+    <!-- Sidebar -->
+    <div
+        class="w-[220px] flex-shrink-0 bg-[#212b46] flex flex-col h-full overflow-hidden shadow-[2px_0_8px_rgba(0,0,0,0.15)] z-20">
+        <!-- Logo Area -->
+        <div class="h-[64px] bg-white flex flex-col items-center justify-center flex-shrink-0">
+            <div class="flex items-center text-[28px] font-black tracking-tighter leading-none mt-1">
+                <span class="text-[#192b5d]">H</span>
+                <div
+                    class="text-[#d81e06] mx-[2px] border-[3px] border-[#d81e06] rounded-[3px] w-[28px] h-[24px] flex items-center justify-center text-[17px]">
+                    C</div>
+                <span class="text-[#192b5d]">H</span>
+            </div>
+            <div class="text-[#1890ff] text-[12px] mt-[3px] font-semibold tracking-[0.1em]">场外清算系统</div>
+        </div>
+
+        <!-- Menu -->
+        <div class="flex-1 overflow-y-auto overflow-x-hidden pt-2 pb-4 shadow-inner">
+            <!-- Home (Active) -->
+            <div
+                class="bg-[#2d8cf0] text-white px-6 py-3.5 flex items-center justify-between cursor-pointer shadow-sm relative group">
+                <span>首页</span>
+            </div>
+
+            <!-- Menus with submenus -->
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-member', this)">
+                <span>会员管理</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-member" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    会员列表</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    开户审批</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    会员信息变更</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-system', this)">
+                <span>系统设置</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-system" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    角色管理</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    菜单管理</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    操作日志</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-account', this)">
+                <span>结算账户</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-account" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    资金账户管理</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    保证金查询</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    出入金流水</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-trade', this)">
+                <span>交易管理</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-trade" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    订单明细</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    成交记录</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    异常监控</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-report', this)">
+                <span>报表管理</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-report" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    结算统计表</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    资金对账表</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-daily', this)">
+                <span>每日清结算</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-daily" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    启动清算程序</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    清算任务监控</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    生成结算单</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-risk', this)">
+                <span>风险管理</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-risk" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    风险阈值配置</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    头寸超限预警</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    违约强平处理</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-msg', this)">
+                <span>消息中心</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-msg" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    系统公告发布</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    站内信列表</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    短信发送日志</div>
+            </div>
+
+            <div class="menu-item px-6 py-3.5 flex items-center justify-between cursor-pointer border-l-2 border-transparent hover:border-[#2d8cf0]"
+                onclick="toggleMenu('menu-admin', this)">
+                <span>管理员配置</span><i class="fas fa-angle-down text-[12px] transition-transform duration-300"></i>
+            </div>
+            <div id="menu-admin" class="submenu-container bg-[#141b2d] text-[#8695ad] text-[13px]">
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    全局参数设置</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    API接口配置</div>
+                <div
+                    class="pl-[42px] py-2.5 hover:text-white cursor-pointer hover:bg-[#2d8cf0] transition-colors relative before:content-[''] before:absolute before:left-[24px] before:top-1/2 before:-translate-y-1/2 before:w-[4px] before:h-[4px] before:rounded-full before:bg-[#8695ad] hover:before:bg-white">
+                    安全与密钥</div>
+            </div>
+        </div>
+
+        <!-- Added Custom Link -->
+        <a href="https://hni-trade-demo.vercel.app"
+            class="block w-full py-4 bg-[#141b2d] hover:bg-[#0e1424] text-[#4ea0fc] hover:text-[#fff] text-center border-t-2 border-[#1890ff] transition-all duration-300 font-semibold tracking-wide shadow-[0_-2px_10px_rgba(24,144,255,0.2)]">
+            <i class="fas fa-external-link-square-alt mr-2"></i>进入交易系统
+        </a>
+    </div>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-[900px]">
+        <!-- Header -->
+        <div
+            class="h-[64px] bg-[#141b2d] flex-shrink-0 flex items-center justify-between px-6 text-[#bdc6d4] text-[13px] shadow-[0_2px_4px_rgba(0,0,0,0.08)] z-10">
+            <!-- Left -->
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-map-marker-alt text-[14px]"></i>
+                <span class="tracking-wide">位置：首页</span>
+            </div>
+
+            <!-- Right -->
+            <div class="flex items-center space-x-7">
+                <div class="tracking-wide">
+                    <span>结算日：<span class="text-[#ff9900] ml-1">2024-06-04</span></span>
+                </div>
+                <div class="flex items-center">
+                    <span
+                        class="w-1.5 h-1.5 rounded-full border border-[#52c41a] bg-[#52c41a] mr-2 shadow-[0_0_6px_#52c41a]"></span>
+                    <span class="tracking-wide">交易中</span>
+                </div>
+                <div class="flex items-center space-x-5">
+                    <div class="relative cursor-pointer hover:text-white transition group">
+                        <i class="far fa-bell text-[18px] group-hover:scale-110 transition-transform"></i>
+                        <span
+                            class="absolute -top-[5px] -right-[10px] bg-[#f5222d] text-white text-[10px] scale-[0.8] px-[4px] py-[1px] rounded-[10px] border-[1.5px] border-[#141b2d] font-bold">99+</span>
+                    </div>
+                    <div class="relative cursor-pointer hover:text-white transition group">
+                        <i class="far fa-file-alt text-[18px] group-hover:scale-110 transition-transform"></i>
+                        <span
+                            class="absolute -top-[5px] -right-[5px] bg-[#f5222d] text-white text-[10px] w-[14px] h-[14px] flex items-center justify-center rounded-full border-[1.5px] border-[#141b2d] font-bold">1</span>
+                    </div>
+                </div>
+                <!-- User -->
+                <div
+                    class="flex items-center cursor-pointer hover:text-white transition pl-3 group border-l border-[#212b46]">
+                    <div
+                        class="w-8 h-8 rounded-full bg-[#2d8cf0] text-white flex items-center justify-center text-[13px] mr-2.5 font-medium shadow-sm">
+                        陶</div>
+                    <div class="flex flex-col justify-center h-full">
+                        <div class="flex items-center mt-1">
+                            <span class="text-[13px] leading-none mb-0.5">陶永新</span>
+                            <i class="fas fa-angle-down text-[10px] ml-1.5 opacity-80 group-hover:opacity-100"></i>
+                        </div>
+                        <span class="text-[11px] text-[#6b798f] leading-none truncate w-[130px]">海南国际清算所股份有...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tags Bar -->
+        <div class="h-[40px] bg-[#fdfdfd] border-b border-[#e8eaec] flex items-center px-4 flex-shrink-0">
+            <div
+                class="border border-[#e8eaec] bg-white h-[28px] px-3.5 rounded-[3px] flex items-center space-x-2.5 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.02)] group hover:border-[#2d8cf0] transition-colors">
+                <span class="text-[#2d8cf0] text-[13px]">首页</span>
+                <i class="fas fa-times text-[11px] text-[#999] group-hover:text-red-500 transition-colors mt-[1px]"></i>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-auto bg-[#f0f2f5] p-[16px]">
+            <div
+                class="bg-white w-full h-full rounded shadow-sm border border-[#e8eaec] flex flex-col items-center justify-center">
+                <div
+                    class="flex flex-col items-center -mt-10 hover:scale-105 transition-transform duration-500 cursor-default">
+                    <div class="flex items-center text-[75px] font-black tracking-tighter leading-none mb-5">
+                        <span class="text-[#192b5d]">H</span>
+                        <div
+                            class="text-[#d81e06] mx-3 border-[6px] border-[#d81e06] rounded-[4px] w-[60px] h-[52px] flex items-center justify-center text-[38px]">
+                            C</div>
+                        <span class="text-[#192b5d]">H</span>
+                    </div>
+                    <h1 class="text-[#515a6e] text-[34px] tracking-[6px] font-normal mb-2 opacity-90">海南国际清算所</h1>
+                    <p class="text-[#9ea7b4] text-[15px] tracking-wider font-light">版本 v3.0.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialization Script -->
+    <script>
+        function toggleMenu(menuId, el) {
+            // Close other menus
+            document.querySelectorAll('.submenu-container').forEach(sub => {
+                if (sub.id !== menuId) {
+                    sub.classList.remove('open');
+                }
+            });
+            document.querySelectorAll('.menu-item i').forEach(icon => {
+                if (icon !== el.querySelector('i')) {
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            // Toggle current
+            const submenu = document.getElementById(menuId);
+            const icon = el.querySelector('i');
+
+            if (submenu.classList.contains('open')) {
+                submenu.classList.remove('open');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                submenu.classList.add('open');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+    </script>
+</body>
+
+</html>
